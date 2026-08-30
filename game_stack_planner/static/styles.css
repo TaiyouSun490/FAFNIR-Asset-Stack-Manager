@@ -49,8 +49,12 @@ h1 { margin: 0; font: 500 clamp(42px, 5.6vw, 78px)/1.04 Georgia, "Yu Mincho", se
 h1 em { color: var(--blue); font-style: italic; }
 .lead { max-width: 720px; margin: 25px 0 0; color: var(--muted); font-size: 16px; line-height: 1.85; }
 .stats { display: flex; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
-.stats div { min-width: 110px; padding: 24px; text-align: center; border-left: 1px solid var(--line); }
-.stats div:first-child { border: 0; }
+.stats a {
+  min-width: 110px; padding: 24px; color: inherit; text-align: center;
+  text-decoration: none; border-left: 1px solid var(--line); transition: background .15s, color .15s;
+}
+.stats a:first-child { border: 0; }
+.stats a:hover, .stats a:focus-visible { color: var(--blue); background: #f3f6ff; outline: none; }
 .stats strong { display: block; font: 600 28px/1 Georgia, serif; }
 .stats span { display: block; margin-top: 8px; color: var(--muted); font-size: 9px; letter-spacing: .1em; }
 .workspace {

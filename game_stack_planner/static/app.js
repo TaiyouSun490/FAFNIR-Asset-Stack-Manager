@@ -70,6 +70,9 @@ function sourceLabel(source) {
 }
 
 function inventoryLabel(candidate) {
+  if (candidate.ownership_evidence?.kind === "unity_editor_my_assets") {
+    return "Unity My Assets";
+  }
   return {
     confirmed_owned: "自己申告の所有",
     locally_cached: "ローカルキャッシュ",
@@ -573,6 +576,22 @@ async function scanAssetStoreCache() {
   }
 }
 
+function showView(viewName, {scope = "", load = true} = {}) {
+  const safeView = viewName === "catalog" ? "catalog" : "planner";
+  $$(".tab").forEach((item) => item.classList.toggle(
+    "active",
+    item.dataset.view === safeView,
+  ));
+  $$(".view").forEach((view) => view.classList.remove("active"));
+  $(`#${safeView}-view`).classList.add("active");
+  if (safeView === "catalog") {
+    $("#catalog-scope").value = SEARCH_LANES.some((lane) => lane.key === scope)
+      ? scope
+      : "";
+    if (load) loadCatalog();
+  }
+}
+
 async function syncUnityMyAssets() {
   const button = $("#sync-my-assets-button");
   const message = $("#my-assets-message");
@@ -586,6 +605,11 @@ async function syncUnityMyAssets() {
     message.textContent = `${result.sync.imported}件を所有アセットとして同期しました`;
     updateStats(result.catalog);
     await loadCatalog();
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", "catalog");
+    url.searchParams.set("scope", "owned_assets");
+    url.searchParams.delete("sync");
+    window.history.replaceState({}, "", url);
     showToast("Unity My Assetsを同期しました");
   } catch (error) {
     message.textContent = error.message;
@@ -669,10 +693,7 @@ function restorePreferences() {
 
 function bind() {
   $$(".tab").forEach((tab) => tab.addEventListener("click", () => {
-    $$(".tab").forEach((item) => item.classList.toggle("active", item === tab));
-    $$(".view").forEach((view) => view.classList.remove("active"));
-    $(`#${tab.dataset.view}-view`).classList.add("active");
-    if (tab.dataset.view === "catalog") loadCatalog();
+    showView(tab.dataset.view);
   }));
   $$(".examples button").forEach((button) => button.addEventListener("click", () => {
     $("#prompt").value = button.dataset.example;
@@ -707,4 +728,15 @@ function bind() {
 
 restorePreferences();
 bind();
-loadStatus();
+const initialRoute = new URLSearchParams(window.location.search);
+const initialView = initialRoute.get("view") || "planner";
+const initialScope = initialRoute.get("scope") || "";
+showView(initialView, {scope: initialScope, load: false});
+loadStatus().then(async () => {
+  if (initialView !== "catalog") return;
+  if (initialRoute.get("sync") === "my-assets") {
+    await syncUnityMyAssets();
+  } else {
+    await loadCatalog();
+  }
+});

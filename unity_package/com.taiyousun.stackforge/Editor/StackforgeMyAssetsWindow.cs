@@ -55,7 +55,8 @@ namespace Stackforge.Editor
                 EditorGUILayout.LabelField("取得件数", StackforgeMyAssetsSync.lastCount.ToString(CultureInfo.InvariantCulture));
 
             if (GUILayout.Button("Stackforgeを開く"))
-                Application.OpenURL("http://127.0.0.1:8770/");
+                Application.OpenURL(
+                    "http://127.0.0.1:8770/?view=catalog&scope=owned_assets&sync=my-assets");
         }
     }
 

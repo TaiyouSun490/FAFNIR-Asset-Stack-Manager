@@ -155,6 +155,10 @@ class UnityBridgeStaticTests(unittest.TestCase):
         self.assertIn('method.Name == "UpdateStatus"', source)
         self.assertIn("values[0].ParameterType", source)
         self.assertNotIn('RequireType("PageFilterStatus")', source)
+        self.assertIn(
+            "?view=catalog&scope=owned_assets&sync=my-assets",
+            source,
+        )
         for forbidden in (
             "accessToken",
             "Authorization",
@@ -165,6 +169,19 @@ class UnityBridgeStaticTests(unittest.TestCase):
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, source)
+
+    def test_owned_stat_deep_links_and_syncs_into_owned_catalog(self) -> None:
+        static = Path(__file__).parents[1] / "game_stack_planner" / "static"
+        html = (static / "index.html").read_text(encoding="utf-8")
+        javascript = (static / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn(
+            '/?view=catalog&amp;scope=owned_assets',
+            html,
+        )
+        self.assertIn('initialRoute.get("sync") === "my-assets"', javascript)
+        self.assertIn('showView(initialView', javascript)
+        self.assertIn('return "Unity My Assets"', javascript)
 
 
 if __name__ == "__main__":
