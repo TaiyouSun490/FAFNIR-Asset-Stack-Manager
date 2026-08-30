@@ -252,11 +252,6 @@ async function loadStatus() {
       ? status.requirement_categories
       : [];
     renderPinCategories();
-    const llmConfigured = status.capabilities?.llm_configured === true;
-    $("#use-llm").disabled = !llmConfigured;
-    $("#llm-copy").textContent = llmConfigured
-      ? "ゲーム案と候補の商品名・タグをOpenAI APIへ送信（明示的にオン）"
-      : "OPENAI_API_KEYを設定してサーバーを再起動すると利用できます";
     updateStats(status.catalog);
   } catch {
     $("#health span").textContent = "接続エラー";
@@ -502,7 +497,6 @@ async function analyze() {
         platform: preferences.platform,
         budget: preferences.budget,
         remote: $("#remote").checked,
-        use_llm: $("#use-llm").checked,
       }),
     });
     renderResult(result);

@@ -36,6 +36,11 @@ def build_parser() -> argparse.ArgumentParser:
     ui.add_argument("--port", type=int, default=8770)
     ui.add_argument("--no-browser", action="store_true")
 
+    subparsers.add_parser(
+        "mcp",
+        help="Run the local stdio MCP server for Codex and other MCP clients.",
+    )
+
     scan = subparsers.add_parser("scan", help="Inspect a local Unity project.")
     scan.add_argument("project")
 
@@ -157,6 +162,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             db_path=args.db,
             open_browser=not args.no_browser,
         )
+        return 0
+
+    if args.command == "mcp":
+        from .mcp_server import run_mcp_server
+
+        run_mcp_server(args.db)
         return 0
 
     app = GameStackApplication(args.db)

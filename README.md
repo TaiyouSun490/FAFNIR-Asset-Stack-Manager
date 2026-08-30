@@ -31,8 +31,8 @@ also be used from automation.
 - Prepare an approval-gated, exact-version OpenUPM manifest change with stale
   state checks and rollback support.
 - Keep the catalog in a local SQLite database.
-- Optionally ask an LLM to select only retrieved catalog IDs and explain each
-  selected asset's concrete role, integration, and remaining gaps in Japanese.
+- Expose the local catalog and approval-gated installer as MCP tools so an MCP
+  client such as Codex can judge concrete uses and combinations itself.
 
 Stackforge does not purchase products, scrape Asset Store web pages, export a
 Unity OAuth token, or automatically treat a local cache file as proof of
@@ -80,25 +80,30 @@ game-stack catalog --scope community --query networking
 Set `GITHUB_TOKEN` if you need a higher GitHub Search API rate limit. Stackforge
 does not load `.env` files automatically.
 
-### LLM recommendation (optional)
+### MCP integration
 
-Set an OpenAI API key before starting the local server:
+Stackforge can run as a local stdio MCP server. The MCP client performs the LLM
+reasoning; Stackforge never needs an OpenAI API key.
 
 ```powershell
-$env:OPENAI_API_KEY = "your-api-key"
-# Optional; defaults to gpt-5-mini
-$env:STACKFORGE_OPENAI_MODEL = "gpt-5-mini"
-game-stack ui
+codex mcp add stackforge -- game-stack mcp
+codex mcp get stackforge
 ```
 
-Then explicitly enable **LLMに用途と組み合わせを判断させる** for a planning
-run. Stackforge sends the game brief, target settings, and a bounded shortlist
-containing candidate IDs, product/package names, descriptions, tags, license,
-ownership state, and local risk signals. It does not send Asset Store login
-tokens, local file paths, product URLs, or asset contents. Model output is
-validated against the retrieved IDs, so invented candidates cannot enter the
-implementation stack. Without `OPENAI_API_KEY`, no catalog data is sent and the
-local relevance planner remains available.
+For a source checkout, use the checkout's Python interpreter and module command
+instead of relying on a globally installed `game-stack` executable:
+
+```powershell
+codex mcp add stackforge -- `
+  C:\path\to\.venv\Scripts\python.exe -m game_stack_planner mcp
+```
+
+The server exposes read-only status, catalog/RAG search, exact candidate lookup,
+and full game-stack evidence retrieval. Installation remains two-stage: first
+prepare and review an exact plan, then apply its one-time approval nonce. Asset
+Store items remain manual-install only. Product names and tags leave the local
+process only when the connected MCP client chooses to include tool results in a
+model request; credentials and Asset Store contents are never returned.
 
 ## Chrome extension
 

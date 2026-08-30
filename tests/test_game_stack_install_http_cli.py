@@ -264,6 +264,12 @@ class InstallCLIParserBoundaryTests(unittest.TestCase):
                     self.assertEqual(value, getattr(parsed, name))
                 self.assertFalse(hasattr(parsed, "url"))
 
+    def test_mcp_stdio_command_is_exposed_without_network_arguments(self) -> None:
+        parsed = self.parser.parse_args(["mcp"])
+        self.assertEqual(parsed.command, "mcp")
+        self.assertFalse(hasattr(parsed, "url"))
+        self.assertFalse(hasattr(parsed, "port"))
+
     def test_unknown_command_and_command_or_url_options_are_rejected(self) -> None:
         rejected = (
             ["install-url", "https://attacker.example/package.git"],

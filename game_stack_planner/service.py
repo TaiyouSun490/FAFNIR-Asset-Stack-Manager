@@ -12,7 +12,6 @@ from typing import Any
 from urllib.parse import urlencode
 
 from .asset_store_cache import CacheScanResult, scan_asset_store_cache
-from .llm_recommender import LlmStackRecommender
 from .models import Candidate, GameRequirement, ProjectSnapshot
 from .repository import StackRepository
 from .requirements import derive_requirements
@@ -286,12 +285,10 @@ class GameStackPlanner:
         *,
         github: GitHubSource | None = None,
         openupm: OpenUpmSource | None = None,
-        llm: LlmStackRecommender | None = None,
     ) -> None:
         self.repository = repository
         self.github = github or GitHubSource()
         self.openupm = openupm or OpenUpmSource()
-        self.llm = llm or LlmStackRecommender.from_environment()
 
     def scan_project(self, path: str) -> ProjectSnapshot:
         snapshot = scan_unity_project(path)
@@ -371,7 +368,6 @@ class GameStackPlanner:
         platform: str = "pc",
         budget: str = "mixed",
         remote: bool = True,
-        use_llm: bool = False,
     ) -> dict[str, Any]:
         started = time.monotonic()
         normalized_prompt = str(prompt or "").strip()
@@ -462,25 +458,6 @@ class GameStackPlanner:
             _make_plan(variant, requirements, recommendations)
             for variant in plan_order
         ]
-        llm_result = self.llm.recommend(
-            enabled=use_llm,
-            prompt=normalized_prompt,
-            platform=platform,
-            budget=budget,
-            project=project,
-            requirements=requirements,
-            recommendations=recommendations,
-        )
-        if llm_result.get("status") == "used":
-            ai_plan = self.llm.build_plan(
-                llm_result=llm_result,
-                requirements=requirements,
-                recommendations=recommendations,
-            )
-            plans.insert(0, ai_plan)
-            recommended_plan_id = "ai_recommended"
-        else:
-            recommended_plan_id = plan_order[0]
         result: dict[str, Any] = {
             "prompt": normalized_prompt,
             "platform": platform,
@@ -490,8 +467,7 @@ class GameStackPlanner:
             "recommendations": recommendations,
             "recommendation_groups": recommendation_groups,
             "plans": plans,
-            "recommended_plan_id": recommended_plan_id,
-            "llm": llm_result,
+            "recommended_plan_id": plan_order[0],
             "asset_store_searches": [
                 self._asset_store_search(
                     requirement, project=project, platform=platform
