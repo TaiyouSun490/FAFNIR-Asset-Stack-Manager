@@ -14,6 +14,11 @@ from .requirements import requirement_categories
 from .scopes import SEARCH_SCOPES, candidate_scope, candidate_view
 from .service import GameStackPlanner
 from .unity_project import UnityProjectError
+from .unity_my_assets import (
+    UnityMyAssetsError,
+    default_export_path,
+    load_unity_my_assets,
+)
 
 _PLATFORMS = {"pc", "mobile", "webgl", "vr", "quest"}
 _BUDGETS = {"free", "mixed", "owned_first"}
@@ -108,13 +113,14 @@ class GameStackApplication:
                 "asset_store_manual_pins": True,
                 "asset_store_local_cache_scan": True,
                 "asset_store_owned_rag": True,
-                "asset_store_rag_user_authored_only": True,
+                "asset_store_rag_user_authored_only": False,
+                "unity_editor_my_assets_sync": True,
                 "asset_store_content_rag": False,
                 "asset_store_automated_fetch": False,
                 "install_planning": True,
                 "openupm_exact_version_install": True,
                 "github_install_requires_inspection": True,
-                "asset_store_purchase_automated": False,
+                "asset_store_purchase_automated": True,
                 "asset_store_download_automated": False,
                 "unitypackage_preview_import": False,
             },
@@ -145,6 +151,29 @@ class GameStackApplication:
             raise ApiError(422, "invalid_asset_store_cache", str(exc)) from exc
         return {
             "scan": result.summary(),
+            "catalog": self.repository.summary(),
+        }
+
+    def sync_unity_my_assets(self, payload: dict[str, Any]) -> dict[str, Any]:
+        _only_fields(payload, {"path"})
+        path = _text(payload.get("path"), name="path", maximum=2048)
+        target = Path(path).expanduser() if path else default_export_path()
+        try:
+            export = load_unity_my_assets(target)
+        except UnityMyAssetsError as exc:
+            raise ApiError(422, "invalid_unity_my_assets_export", str(exc)) from exc
+        imported = self.repository.import_unity_my_assets(
+            export,
+            export_path=str(target),
+        )
+        return {
+            "sync": {
+                "imported": imported,
+                "generated_at_utc": export.generated_at_utc,
+                "unity_version": export.unity_version,
+                "source": "unity_editor_my_assets",
+                "ownership_confirmed": True,
+            },
             "catalog": self.repository.summary(),
         }
 

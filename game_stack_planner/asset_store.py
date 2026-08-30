@@ -48,10 +48,15 @@ def normalize_asset_store_product_url(url: str) -> AssetStoreProductUrl:
     ):
         raise ValueError("Use a Unity Asset Store product page, not a search page.")
 
-    match = _PRODUCT_SLUG.fullmatch(parts[-1])
-    if match is None:
-        raise ValueError("Unity Asset Store product ID is missing from the URL.")
-    product_id = match.group("product_id")
+    if parts[-2].casefold() == "package" and parts[-1].isdigit():
+        product_id = parts[-1]
+        if product_id.startswith("0") or int(product_id) <= 0:
+            raise ValueError("Unity Asset Store product ID is missing from the URL.")
+    else:
+        match = _PRODUCT_SLUG.fullmatch(parts[-1])
+        if match is None:
+            raise ValueError("Unity Asset Store product ID is missing from the URL.")
+        product_id = match.group("product_id")
     canonical_path = "/" + "/".join(parts)
     canonical_url = urlunsplit(
         ("https", "assetstore.unity.com", canonical_path, "", "")

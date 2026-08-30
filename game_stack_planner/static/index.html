@@ -139,9 +139,9 @@
               <p class="kicker">PRIVATE RETRIEVAL</p>
               <div class="rag-summary-count">
                 <strong id="rag-count">0</strong>
-                <span id="rag-summary-title">購入済みRAG</span>
+                <span id="rag-summary-title">所有アセットRAG</span>
               </div>
-              <p>AIに見えるのは、あなたが入力した別名・メモ・カテゴリだけです。Asset Storeの本文・画像・アセット内容は登録しません。</p>
+              <p>Unity Editor同期では商品名・タグだけを登録します。Asset Storeの本文・画像・アセット内容や認証トークンは登録しません。</p>
             </section>
             <label>検索<input id="catalog-query" type="search" placeholder="名前・タグ・機能"></label>
             <label>検索レーン
@@ -172,6 +172,13 @@
               </select>
             </label>
             <button id="catalog-search-button" class="button secondary">絞り込む</button>
+            <section class="cache-import" aria-labelledby="my-assets-sync-title">
+              <h3 id="my-assets-sync-title">Unity My Assets</h3>
+              <p>Unityで Tools &gt; Stackforge &gt; My Assets Sync を実行後、ログイン中の所有一覧を取り込みます。</p>
+              <label>同期ファイル（通常は空欄）<input id="my-assets-path" type="text" maxlength="2048" placeholder="標準のunity-my-assets.json"></label>
+              <button id="sync-my-assets-button" class="button secondary">所有アセットを同期</button>
+              <p id="my-assets-message" class="muted" role="status"></p>
+            </section>
             <section class="cache-import" aria-labelledby="cache-import-title">
               <h3 id="cache-import-title">Unityローカル資産</h3>
               <p>このPCにダウンロード済みの .unitypackage を取り込みます。My Assets全件や購入確認を意味しません。</p>

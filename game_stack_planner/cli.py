@@ -48,6 +48,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use an explicit Asset Store-5.x cache directory.",
     )
 
+    my_assets = subparsers.add_parser(
+        "sync-my-assets",
+        help="Import the owned-asset export created by the Unity Editor bridge.",
+    )
+    my_assets.add_argument(
+        "--path",
+        help="Use an explicit unity-my-assets.json export.",
+    )
+
     recommend = subparsers.add_parser(
         "recommend", help="Build stack recommendations for a game idea."
     )
@@ -156,6 +165,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = app.scan({"path": args.project})
         elif args.command == "scan-cache":
             result = app.scan_cache({"path": args.path or ""})
+        elif args.command == "sync-my-assets":
+            result = app.sync_unity_my_assets({"path": args.path or ""})
         elif args.command == "recommend":
             result = app.recommend({
                 "prompt": args.prompt,

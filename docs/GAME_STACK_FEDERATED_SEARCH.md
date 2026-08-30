@@ -12,6 +12,7 @@ Stackforgeの検索価値は、同じゲーム機能に対して次の3レーン
 
 - `confirmed_owned`: ユーザーが所有済みとして明示した商品。現段階の証拠表示は「自己申告」です。
 - `locally_cached`: このPCの `Asset Store-5.x` に `.unitypackage` がある商品。ダウンロード済みですが、現在のアカウントの全My Assetsや購入証明とは限りません。
+- `confirmed_owned`: Unity Editorブリッジがログイン中のMy Assets応答で確認した商品、またはユーザーが明示的に自己申告した商品。両者は `ownership_evidence.kind` で区別します。
 - `project_present`: 指定Unityプロジェクトの依存関係で確認したパッケージ。
 - `unknown`: 購入・所有状態を確認していない候補。
 
@@ -48,6 +49,6 @@ Native hostはChrome拡張originを1つだけ許可し、URL・message schema・
 
 ## Asset Storeアクセス方針
 
-Asset Storeの商品検索は公式検索リンクを開き、ユーザーが選択したURLだけを保存します。自動巡回、検索結果スクレイピング、My Assetsの自動ページ送りは実装しません。GitHubとOpenUPMはそれぞれの公開検索APIを本体が利用します。
+未所持候補のAsset Store検索は公式検索リンクを開き、ユーザーが選択したURLだけを保存します。Webページの自動巡回や検索結果スクレイピングはしません。所有一覧は別経路として、ログイン済みUnity EditorのPackage ManagerサービスをEditorブリッジがページングし、最小メタデータだけをローカルへ書き出します。GitHubとOpenUPMはそれぞれの公開検索APIを本体が利用します。
 
 Unityの現行条件は変更される可能性があるため、運用時は [Unity Asset Store Terms](https://unity.com/legal/as-terms) を確認してください。

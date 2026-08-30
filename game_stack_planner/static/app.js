@@ -573,6 +573,27 @@ async function scanAssetStoreCache() {
   }
 }
 
+async function syncUnityMyAssets() {
+  const button = $("#sync-my-assets-button");
+  const message = $("#my-assets-message");
+  button.disabled = true;
+  message.textContent = "Unity Editorの同期ファイルを確認中…";
+  try {
+    const result = await api("/api/asset-store/my-assets/sync", {
+      method: "POST",
+      body: JSON.stringify({path: $("#my-assets-path").value.trim()}),
+    });
+    message.textContent = `${result.sync.imported}件を所有アセットとして同期しました`;
+    updateStats(result.catalog);
+    await loadCatalog();
+    showToast("Unity My Assetsを同期しました");
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
 async function pinAsset(event) {
   event.preventDefault();
   const message = $("#pin-message");
@@ -661,6 +682,7 @@ function bind() {
   $("#analyze-button").addEventListener("click", analyze);
   $("#catalog-search-button").addEventListener("click", loadCatalog);
   $("#scan-cache-button").addEventListener("click", scanAssetStoreCache);
+  $("#sync-my-assets-button").addEventListener("click", syncUnityMyAssets);
   $("#catalog-query").addEventListener("keydown", (event) => {
     if (event.key === "Enter") loadCatalog();
   });

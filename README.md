@@ -19,6 +19,9 @@ also be used from automation.
 
 - Scan `Packages/manifest.json`, `packages-lock.json`, and Unity project settings.
 - Detect downloaded `.unitypackage` files in the local `Asset Store-5.x` cache.
+- Sync the signed-in Unity Editor account's complete visible and hidden My Assets
+  list through the included Editor bridge, then index product names and tags for
+  local retrieval.
 - Search GitHub through its official REST API and OpenUPM through its registry API.
 - Generate official Asset Store search links for missing capabilities.
 - Save an Asset Store product as a purchase-unconfirmed candidate with the
@@ -29,10 +32,11 @@ also be used from automation.
   state checks and rollback support.
 - Keep the catalog in a local SQLite database.
 
-Stackforge does not purchase products, scrape Asset Store result pages, or
-automatically treat a local cache file as proof of ownership. Asset Store
-products remain manual-install items. GitHub search results require further
-package inspection before they can become executable install plans.
+Stackforge does not purchase products, scrape Asset Store web pages, export a
+Unity OAuth token, or automatically treat a local cache file as proof of
+ownership. Asset Store products remain manual-install items. GitHub search
+results require further package inspection before they can become executable
+install plans.
 
 ## Quick start
 
@@ -64,6 +68,9 @@ game-stack recommend --prompt "2D deckbuilder" --offline
 # Inspect downloaded Asset Store packages without claiming purchase ownership
 game-stack scan-cache
 
+# Import an export created by the Unity Editor bridge
+game-stack sync-my-assets
+
 # Search one lane
 game-stack catalog --scope community --query networking
 ```
@@ -80,16 +87,29 @@ cookies, descriptions, images, prices, or search listings.
 See [browser_extension/unity_asset_store/README.md](browser_extension/unity_asset_store/README.md)
 for unpacked-extension and Native Messaging setup.
 
-## Asset Inventory integration
+## Unity My Assets sync
 
-Asset Inventory 4 already provides owned-library indexing, semantic search,
-package download, selective import, and MCP tools. Stackforge does not bundle or
-redistribute Asset Inventory. A future optional adapter can use a separately
-licensed installation as the owned-assets provider while Stackforge concentrates
-on cross-source planning and comparison.
+Install the embedded package from
+`unity_package/com.taiyousun.stackforge/package.json` with Unity Package
+Manager's **Add package from disk** command. Then:
 
-Until that adapter is implemented, owned inputs come from the Unity project,
-the local Asset Store cache, and explicit user records.
+1. Sign in to Unity Hub / Unity Editor.
+2. Open **Tools > Stackforge > My Assets Sync**.
+3. Click **My Assetsを同期**.
+4. In Stackforge's Catalog, click **所有アセットを同期**.
+
+The Editor bridge writes a versioned JSON file under the user's local application
+data directory. It includes only product ID, display name, Asset Store tags,
+purchase/grant time, hidden state, Unity version, and export time. Stackforge
+does not require Asset Inventory or a Chrome extension for this workflow.
+
+The bridge is an adapter over Unity Editor's undocumented internal Package
+Manager service, so a future Unity release can require an adapter update. Its
+design follows Unity's published reference source for the
+[service container](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/PackageManagerUI/Editor/Services/ServicesContainer.cs),
+[My Assets REST service](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/PackageManagerUI/Editor/Services/AssetStore/AssetStoreRestAPI.cs),
+and [purchase result model](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/PackageManagerUI/Editor/Services/AssetStore/AssetStorePurchases.cs).
+That reference source is not copied or redistributed by Stackforge.
 
 ## Documentation
 
@@ -109,6 +129,6 @@ integrity, rollback checks, and static UI contracts.
 
 ## License
 
-[MIT](LICENSE). Asset Inventory, Unity, Unity Asset Store, GitHub, OpenUPM, and
-Chrome are products or trademarks of their respective owners. Stackforge is not
-affiliated with or endorsed by them.
+[MIT](LICENSE). Unity, Unity Asset Store, GitHub, OpenUPM, and Chrome are products
+or trademarks of their respective owners. Stackforge is not affiliated with or
+endorsed by them.

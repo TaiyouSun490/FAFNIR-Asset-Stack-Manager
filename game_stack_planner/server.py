@@ -200,6 +200,8 @@ class PlannerHandler(BaseHTTPRequestHandler):
                 result = self.app.scan(payload)
             elif route == "/api/asset-store/cache/scan":
                 result = self.app.scan_cache(payload)
+            elif route == "/api/asset-store/my-assets/sync":
+                result = self.app.sync_unity_my_assets(payload)
             elif route == "/api/recommend":
                 result = self.app.recommend(payload)
             elif route == "/api/catalog/manual":

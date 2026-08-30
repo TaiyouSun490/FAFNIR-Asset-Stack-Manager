@@ -14,6 +14,7 @@ from typing import Any, Iterable
 
 from .asset_store import normalize_asset_store_product_url
 from .models import Candidate, ProjectSnapshot
+from .unity_my_assets import UnityMyAssetsExport
 
 
 def default_database_path() -> Path:
@@ -159,6 +160,18 @@ class StackRepository:
                 );
                 """
             )
+            rag_columns = {
+                str(row["name"])
+                for row in self._connection.execute(
+                    "PRAGMA table_info(asset_rag_documents)"
+                ).fetchall()
+            }
+            if "document_source" not in rag_columns:
+                self._connection.execute(
+                    "ALTER TABLE asset_rag_documents "
+                    "ADD COLUMN document_source TEXT NOT NULL "
+                    "DEFAULT 'user_authored'"
+                )
             self._connection.commit()
 
     def upsert_candidates(self, candidates: Iterable[Candidate]) -> int:
@@ -217,7 +230,11 @@ class StackRepository:
                         external_id = excluded.external_id,
                         title = excluded.title,
                         url = excluded.url,
-                        description = excluded.description,
+                        description = CASE
+                            WHEN excluded.description <> ''
+                            THEN excluded.description
+                            ELSE candidates.description
+                        END,
                         categories_json = excluded.categories_json,
                         tags_json = excluded.tags_json,
                         ownership = CASE
@@ -555,15 +572,17 @@ class StackRepository:
                 """
                 INSERT INTO asset_rag_documents (
                     id, candidate_id, user_alias, notes, categories_json,
-                    search_text, content_hash, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    search_text, content_hash, created_at, updated_at,
+                    document_source
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user_authored')
                 ON CONFLICT(candidate_id) DO UPDATE SET
                     user_alias = excluded.user_alias,
                     notes = excluded.notes,
                     categories_json = excluded.categories_json,
                     search_text = excluded.search_text,
                     content_hash = excluded.content_hash,
-                    updated_at = excluded.updated_at
+                    updated_at = excluded.updated_at,
+                    document_source = 'user_authored'
                 """,
                 (
                     document_id,
@@ -592,6 +611,200 @@ class StackRepository:
             self._connection.commit()
         return candidate
 
+    def import_unity_my_assets(
+        self,
+        export: UnityMyAssetsExport,
+        *,
+        export_path: str,
+    ) -> int:
+        """Upsert authenticated Unity Editor My Assets metadata and RAG rows."""
+        timestamp = _now()
+        candidates = tuple(
+            Candidate(
+                id=f"asset_store:{asset.product_id}",
+                source="asset_store",
+                external_id=asset.product_id,
+                title=asset.display_name,
+                url=(
+                    "https://assetstore.unity.com/packages/package/"
+                    f"{asset.product_id}"
+                ),
+                description="",
+                tags=tuple(dict.fromkeys((*asset.tags, "unity_my_assets"))),
+                ownership="owned",
+                installed=False,
+                metadata={
+                    "capture": "unity_editor_bridge",
+                    "fetched": True,
+                    "inventory_state": "confirmed_owned",
+                    "purchase_time": asset.purchased_time,
+                    "hidden_in_my_assets": asset.hidden,
+                    "unity_version": export.unity_version,
+                    "my_assets_generated_at": export.generated_at_utc,
+                    "ownership_evidence": {
+                        "kind": "unity_editor_my_assets",
+                        "verified": True,
+                        "verification_scope": "logged_in_unity_editor_session",
+                    },
+                },
+            )
+            for asset in export.assets
+        )
+        self.upsert_candidates(candidates)
+
+        with self._lock:
+            current_ids = {candidate.id for candidate in candidates}
+            stale_rows = self._connection.execute(
+                """
+                SELECT e.candidate_id, c.metadata_json,
+                       d.id AS document_id, d.document_source
+                FROM asset_store_purchase_evidence AS e
+                JOIN candidates AS c ON c.id = e.candidate_id
+                LEFT JOIN asset_rag_documents AS d
+                  ON d.candidate_id = e.candidate_id
+                WHERE e.source = 'stackforge_unity_editor_bridge'
+                """
+            ).fetchall()
+            for row in stale_rows:
+                candidate_id = str(row["candidate_id"])
+                if candidate_id in current_ids:
+                    continue
+                document_source = str(row["document_source"] or "")
+                raw_metadata = json.loads(str(row["metadata_json"]))
+                metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
+                if document_source == "user_authored":
+                    evidence = {"kind": "user_asserted", "verified": False}
+                    self._connection.execute(
+                        """
+                        UPDATE asset_store_purchase_evidence
+                        SET evidence_kind = 'user_asserted', verified = 0,
+                            source = 'asset_store_extension',
+                            last_asserted_at = ?
+                        WHERE candidate_id = ?
+                        """,
+                        (timestamp, candidate_id),
+                    )
+                    metadata.update({
+                        "inventory_state": "confirmed_owned",
+                        "ownership_evidence": evidence,
+                    })
+                else:
+                    document_id = str(row["document_id"] or "")
+                    if document_id:
+                        self._connection.execute(
+                            "DELETE FROM asset_rag_search WHERE document_id = ?",
+                            (document_id,),
+                        )
+                        self._connection.execute(
+                            "DELETE FROM asset_rag_documents WHERE id = ?",
+                            (document_id,),
+                        )
+                    self._connection.execute(
+                        "DELETE FROM asset_store_purchase_evidence "
+                        "WHERE candidate_id = ?",
+                        (candidate_id,),
+                    )
+                    metadata.update({
+                        "inventory_state": "not_in_latest_my_assets",
+                        "ownership_evidence": {
+                            "kind": "unity_editor_my_assets_stale",
+                            "verified": False,
+                        },
+                    })
+                    self._connection.execute(
+                        "UPDATE candidates SET ownership = 'unknown' WHERE id = ?",
+                        (candidate_id,),
+                    )
+                self._connection.execute(
+                    "UPDATE candidates SET metadata_json = ?, last_seen_at = ? "
+                    "WHERE id = ?",
+                    (_json(metadata), timestamp, candidate_id),
+                )
+
+            for candidate, asset in zip(candidates, export.assets, strict=True):
+                self._connection.execute(
+                    """
+                    INSERT INTO asset_store_purchase_evidence (
+                        candidate_id, evidence_kind, verified, source,
+                        first_asserted_at, last_asserted_at, assertion_count
+                    ) VALUES (
+                        ?, 'unity_editor_my_assets', 1,
+                        'stackforge_unity_editor_bridge', ?, ?, 1
+                    )
+                    ON CONFLICT(candidate_id) DO UPDATE SET
+                        evidence_kind = 'unity_editor_my_assets',
+                        verified = 1,
+                        source = 'stackforge_unity_editor_bridge',
+                        last_asserted_at = excluded.last_asserted_at,
+                        assertion_count =
+                            asset_store_purchase_evidence.assertion_count + 1
+                    """,
+                    (candidate.id, timestamp, timestamp),
+                )
+                existing = self._connection.execute(
+                    """
+                    SELECT document_source
+                    FROM asset_rag_documents
+                    WHERE candidate_id = ?
+                    """,
+                    (candidate.id,),
+                ).fetchone()
+                if (
+                    existing is not None
+                    and str(existing["document_source"]) == "user_authored"
+                ):
+                    continue
+                document_id = f"asset_rag:{candidate.external_id}"
+                search_tags = tuple(dict.fromkeys(asset.tags))
+                search_text = " ".join((asset.display_name, *search_tags))
+                content_hash = sha256(_json({
+                    "display_name": asset.display_name,
+                    "tags": search_tags,
+                    "source": "unity_editor_my_assets",
+                }).encode("utf-8")).hexdigest()
+                self._connection.execute(
+                    """
+                    INSERT INTO asset_rag_documents (
+                        id, candidate_id, user_alias, notes, categories_json,
+                        search_text, content_hash, created_at, updated_at,
+                        document_source
+                    ) VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(candidate_id) DO UPDATE SET
+                        user_alias = excluded.user_alias,
+                        notes = '',
+                        categories_json = excluded.categories_json,
+                        search_text = excluded.search_text,
+                        content_hash = excluded.content_hash,
+                        updated_at = excluded.updated_at,
+                        document_source = excluded.document_source
+                    """,
+                    (
+                        document_id,
+                        candidate.id,
+                        asset.display_name,
+                        _json(search_tags),
+                        search_text,
+                        content_hash,
+                        timestamp,
+                        timestamp,
+                        "unity_editor_my_assets",
+                    ),
+                )
+                self._connection.execute(
+                    "DELETE FROM asset_rag_search WHERE document_id = ?",
+                    (document_id,),
+                )
+                self._connection.execute(
+                    """
+                    INSERT INTO asset_rag_search (
+                        document_id, user_alias, notes, search_text
+                    ) VALUES (?, ?, '', ?)
+                    """,
+                    (document_id, asset.display_name, search_text),
+                )
+            self._connection.commit()
+        return len(candidates)
+
     def search_asset_rag(
         self,
         *,
@@ -611,10 +824,10 @@ class StackRepository:
                 )
                 pattern = f"%{escaped}%"
                 clauses.append(
-                    "(user_alias LIKE ? ESCAPE '\\' "
-                    "OR notes LIKE ? ESCAPE '\\' "
-                    "OR categories_json LIKE ? ESCAPE '\\' "
-                    "OR search_text LIKE ? ESCAPE '\\')"
+                    "(d.user_alias LIKE ? ESCAPE '\\' "
+                    "OR d.notes LIKE ? ESCAPE '\\' "
+                    "OR d.categories_json LIKE ? ESCAPE '\\' "
+                    "OR d.search_text LIKE ? ESCAPE '\\')"
                 )
                 parameters.extend((pattern, pattern, pattern, pattern))
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
@@ -622,10 +835,14 @@ class StackRepository:
         with self._lock:
             rows = self._connection.execute(
                 f"""
-                SELECT candidate_id, user_alias, notes, categories_json
-                FROM asset_rag_documents
+                SELECT d.candidate_id, d.user_alias, d.notes,
+                       d.categories_json, d.document_source,
+                       e.evidence_kind, e.verified
+                FROM asset_rag_documents AS d
+                LEFT JOIN asset_store_purchase_evidence AS e
+                  ON e.candidate_id = d.candidate_id
                 {where}
-                ORDER BY updated_at DESC, candidate_id
+                ORDER BY d.updated_at DESC, d.candidate_id
                 LIMIT ?
                 """,
                 (*parameters, bounded_limit),
@@ -643,8 +860,8 @@ class StackRepository:
                     else ()
                 ),
                 "ownership_evidence": {
-                    "kind": "user_asserted",
-                    "verified": False,
+                    "kind": str(row["evidence_kind"] or "user_asserted"),
+                    "verified": bool(row["verified"] or False),
                 },
             })
         return results

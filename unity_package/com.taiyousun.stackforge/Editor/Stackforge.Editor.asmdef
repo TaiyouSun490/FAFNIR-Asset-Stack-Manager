@@ -1,0 +1,8 @@
+{
+  "name": "Stackforge.Editor",
+  "rootNamespace": "Stackforge.Editor",
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": true
+}
