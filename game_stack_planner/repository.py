@@ -372,7 +372,7 @@ class StackRepository:
             clauses.append("ownership = ?")
             parameters.append(ownership)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-        bounded_limit = max(1, min(int(limit), 500))
+        bounded_limit = max(1, min(int(limit), 5000))
         with self._lock:
             rows = self._connection.execute(
                 f"""

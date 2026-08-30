@@ -21,13 +21,15 @@ class StaticGuiTests(unittest.TestCase):
 
     def test_gui_exposes_plans_catalog_and_manual_capture(self):
         self.assertIn("機能ブループリント", self.html)
-        self.assertIn("推奨プラン", self.html)
+        self.assertIn("実装スタック", self.html)
+        self.assertIn('id="use-llm"', self.html)
         self.assertIn("保存カタログ", self.html)
         self.assertIn("Asset Store商品を保存", self.html)
         self.assertIn('id="pin-categories"', self.html)
         self.assertIn("/api/recommend", self.javascript)
         self.assertIn("/api/catalog/manual", self.javascript)
         self.assertIn("search.requirement", self.javascript)
+        self.assertIn("use_llm", self.javascript)
         self.assertNotIn("categories: []", self.javascript)
 
     def test_untrusted_api_text_is_not_inserted_as_html(self):

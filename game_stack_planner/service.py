@@ -12,6 +12,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 from .asset_store_cache import CacheScanResult, scan_asset_store_cache
+from .llm_recommender import LlmStackRecommender
 from .models import Candidate, GameRequirement, ProjectSnapshot
 from .repository import StackRepository
 from .requirements import derive_requirements
@@ -27,11 +28,16 @@ _RECIPROCAL_LICENSES = {
     "gpl", "gpl-2.0", "gpl-3.0", "agpl-3.0",
     "lgpl", "lgpl-2.1", "lgpl-3.0",
 }
-_REMOTE_REQUIREMENT_LIMIT = 4
+_REMOTE_REQUIREMENT_LIMIT = 14
 _RECOMMENDATION_SCOPE_LIMITS = {
-    "owned_assets": 3,
-    "asset_store_market": 3,
-    "community": 5,
+    "owned_assets": 8,
+    "asset_store_market": 5,
+    "community": 8,
+}
+
+_GENERIC_MATCH_TOKENS = {
+    "adaptive", "asset", "assets", "controller", "framework", "game", "kit",
+    "manager", "package", "room", "system", "tool", "toolkit", "unity",
 }
 
 
@@ -42,7 +48,7 @@ def _normalized(value: str) -> str:
 def _tokens(value: str) -> set[str]:
     return {
         item for item in re.findall(r"[a-z0-9][a-z0-9_.+-]{1,}", _normalized(value))
-        if item not in {"unity", "package", "system", "tool", "game"}
+        if item not in _GENERIC_MATCH_TOKENS
     }
 
 
@@ -69,20 +75,29 @@ def _candidate_score(
     risks: list[str] = []
     score = 0.0
 
-    category_match = requirement.key in candidate.categories
+    query_tokens = _tokens(requirement.query)
+    identity_overlap = query_tokens & _tokens(" ".join((
+        candidate.title,
+        *candidate.tags,
+    )))
+    description_overlap = query_tokens & _tokens(candidate.description)
+    overlap = identity_overlap | description_overlap
+    remote_candidate = candidate.source in {"github", "openupm"}
+    category_match = (
+        requirement.key in candidate.categories
+        and not remote_candidate
+    )
     if category_match:
         score += 48
         reasons.append("必要機能のカテゴリと一致")
-    overlap = _tokens(requirement.query) & _tokens(
-        " ".join((
-            candidate.title,
-            candidate.description,
-            *candidate.tags,
-            *candidate.categories,
-        ))
-    )
+    # Remote search APIs can return broad list repositories whose README happens
+    # to mention a term. Require the package/repository identity itself to match,
+    # or at least two distinct terms in its description. Search-assigned
+    # categories are retrieval provenance, not proof of relevance.
+    if remote_candidate and not identity_overlap and len(description_overlap) < 2:
+        overlap = set()
     if overlap:
-        score += min(24.0, len(overlap) * 5.0)
+        score += min(30.0, len(overlap) * 12.0)
         reasons.append("検索語一致: " + ", ".join(sorted(overlap)[:4]))
 
     # Ownership is useful only after relevance is established. Without this
@@ -271,10 +286,12 @@ class GameStackPlanner:
         *,
         github: GitHubSource | None = None,
         openupm: OpenUpmSource | None = None,
+        llm: LlmStackRecommender | None = None,
     ) -> None:
         self.repository = repository
         self.github = github or GitHubSource()
         self.openupm = openupm or OpenUpmSource()
+        self.llm = llm or LlmStackRecommender.from_environment()
 
     def scan_project(self, path: str) -> ProjectSnapshot:
         snapshot = scan_unity_project(path)
@@ -354,6 +371,7 @@ class GameStackPlanner:
         platform: str = "pc",
         budget: str = "mixed",
         remote: bool = True,
+        use_llm: bool = False,
     ) -> dict[str, Any]:
         started = time.monotonic()
         normalized_prompt = str(prompt or "").strip()
@@ -381,7 +399,10 @@ class GameStackPlanner:
                 "openupm": {"status": "offline", "count": 0},
             }
 
-        catalog = self.repository.list_candidates(limit=500)
+        # Planning must consider the whole personal library. The public catalog
+        # endpoint remains paginated, but silently searching only its first page
+        # makes large My Assets libraries effectively random.
+        catalog = self.repository.list_candidates(limit=5000)
         if project is not None:
             by_id = {item.id: item for item in catalog}
             by_id.update({item.id: item for item in project.packages})
@@ -441,6 +462,25 @@ class GameStackPlanner:
             _make_plan(variant, requirements, recommendations)
             for variant in plan_order
         ]
+        llm_result = self.llm.recommend(
+            enabled=use_llm,
+            prompt=normalized_prompt,
+            platform=platform,
+            budget=budget,
+            project=project,
+            requirements=requirements,
+            recommendations=recommendations,
+        )
+        if llm_result.get("status") == "used":
+            ai_plan = self.llm.build_plan(
+                llm_result=llm_result,
+                requirements=requirements,
+                recommendations=recommendations,
+            )
+            plans.insert(0, ai_plan)
+            recommended_plan_id = "ai_recommended"
+        else:
+            recommended_plan_id = plan_order[0]
         result: dict[str, Any] = {
             "prompt": normalized_prompt,
             "platform": platform,
@@ -450,7 +490,8 @@ class GameStackPlanner:
             "recommendations": recommendations,
             "recommendation_groups": recommendation_groups,
             "plans": plans,
-            "recommended_plan_id": plan_order[0],
+            "recommended_plan_id": recommended_plan_id,
+            "llm": llm_result,
             "asset_store_searches": [
                 self._asset_store_search(
                     requirement, project=project, platform=platform

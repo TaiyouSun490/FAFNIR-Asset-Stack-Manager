@@ -83,6 +83,11 @@
               <input id="remote" type="checkbox" checked>
               <i aria-hidden="true"></i>
             </label>
+            <label class="switch-row">
+              <span><strong>LLMに用途と組み合わせを判断させる</strong><small id="llm-copy">ゲーム案と候補の商品名・タグをOpenAI APIへ送信</small></span>
+              <input id="use-llm" type="checkbox">
+              <i aria-hidden="true"></i>
+            </label>
             <button id="analyze-button" class="button primary">
               <span>構成案をつくる</span><b>→</b>
             </button>
@@ -95,7 +100,7 @@
                 <span>IDEA</span><i></i><span>NEEDS</span><i></i><span>STACK</span>
               </div>
               <h2>ブリーフから始めましょう</h2>
-              <p>必要機能、候補の根拠、互換性リスクをまとめた3種類の実装プランを生成します。</p>
+              <p>必要な役割を分解し、手持ちアセットとOSSをどう使い、どう組み合わせるかまで構成します。</p>
             </div>
 
             <div id="results" class="hidden">
@@ -111,11 +116,11 @@
                 <div id="requirements" class="requirements"></div>
               </section>
               <section class="panel section-card">
-                <div class="section-title"><span>02</span><h3>推奨プラン</h3></div>
+                <div class="section-title"><span>02</span><h3>実装スタック</h3></div>
                 <div id="plans" class="plans"></div>
               </section>
               <section class="panel section-card">
-                <div class="section-title"><span>03</span><h3>3つの検索元を横断比較</h3></div>
+                <div class="section-title"><span>03</span><h3>要件別の代替候補</h3></div>
                 <div id="recommendations" class="recommendations"></div>
               </section>
               <section class="panel section-card">

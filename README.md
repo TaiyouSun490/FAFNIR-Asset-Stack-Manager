@@ -31,6 +31,8 @@ also be used from automation.
 - Prepare an approval-gated, exact-version OpenUPM manifest change with stale
   state checks and rollback support.
 - Keep the catalog in a local SQLite database.
+- Optionally ask an LLM to select only retrieved catalog IDs and explain each
+  selected asset's concrete role, integration, and remaining gaps in Japanese.
 
 Stackforge does not purchase products, scrape Asset Store web pages, export a
 Unity OAuth token, or automatically treat a local cache file as proof of
@@ -77,6 +79,26 @@ game-stack catalog --scope community --query networking
 
 Set `GITHUB_TOKEN` if you need a higher GitHub Search API rate limit. Stackforge
 does not load `.env` files automatically.
+
+### LLM recommendation (optional)
+
+Set an OpenAI API key before starting the local server:
+
+```powershell
+$env:OPENAI_API_KEY = "your-api-key"
+# Optional; defaults to gpt-5-mini
+$env:STACKFORGE_OPENAI_MODEL = "gpt-5-mini"
+game-stack ui
+```
+
+Then explicitly enable **LLMに用途と組み合わせを判断させる** for a planning
+run. Stackforge sends the game brief, target settings, and a bounded shortlist
+containing candidate IDs, product/package names, descriptions, tags, license,
+ownership state, and local risk signals. It does not send Asset Store login
+tokens, local file paths, product URLs, or asset contents. Model output is
+validated against the retrieved IDs, so invented candidates cannot enter the
+implementation stack. Without `OPENAI_API_KEY`, no catalog data is sent and the
+local relevance planner remains available.
 
 ## Chrome extension
 

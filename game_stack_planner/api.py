@@ -115,6 +115,8 @@ class GameStackApplication:
                 "asset_store_owned_rag": True,
                 "asset_store_rag_user_authored_only": False,
                 "unity_editor_my_assets_sync": True,
+                "llm_stack_recommendation": True,
+                "llm_configured": self.planner.llm.configured,
                 "asset_store_content_rag": False,
                 "asset_store_automated_fetch": False,
                 "install_planning": True,
@@ -127,7 +129,7 @@ class GameStackApplication:
             "limits": {
                 "prompt_characters": 8000,
                 "request_bytes": 1024 * 1024,
-                "remote_requirements": 4,
+                "remote_requirements": 14,
             },
             "requirement_categories": list(_REQUIREMENT_CATEGORIES),
             "search_scopes": list(SEARCH_SCOPES),
@@ -199,6 +201,9 @@ class GameStackApplication:
         remote_value = payload.get("remote", True)
         if not isinstance(remote_value, bool):
             raise ApiError(400, "invalid_request", "remote must be a boolean.")
+        use_llm = payload.get("use_llm", False)
+        if not isinstance(use_llm, bool):
+            raise ApiError(400, "invalid_request", "use_llm must be a boolean.")
         try:
             return self.planner.recommend(
                 prompt=prompt,
@@ -206,6 +211,7 @@ class GameStackApplication:
                 platform=platform,
                 budget=budget,
                 remote=remote_value,
+                use_llm=use_llm,
             )
         except UnityProjectError as exc:
             raise ApiError(422, "invalid_unity_project", str(exc)) from exc

@@ -252,6 +252,11 @@ async function loadStatus() {
       ? status.requirement_categories
       : [];
     renderPinCategories();
+    const llmConfigured = status.capabilities?.llm_configured === true;
+    $("#use-llm").disabled = !llmConfigured;
+    $("#llm-copy").textContent = llmConfigured
+      ? "ゲーム案と候補の商品名・タグをOpenAI APIへ送信（明示的にオン）"
+      : "OPENAI_API_KEYを設定してサーバーを再起動すると利用できます";
     updateStats(status.catalog);
   } catch {
     $("#health span").textContent = "接続エラー";
@@ -338,12 +343,30 @@ function renderPlans(result) {
     card.append(element("div", "coverage", `${plan.coverage}%`));
     card.append(element("h4", "", plan.title));
     card.append(element("p", "", plan.description));
-    const list = element("ul");
-    plan.selected.slice(0, 6).forEach((item) => {
-      list.append(element("li", "", `${item.candidate.title} — ${item.requirement_titles.join(" / ")}`));
+    const list = element("div", "stack-items");
+    plan.selected.forEach((item) => {
+      const row = element("article", "stack-item");
+      const heading = element("h5", "", item.candidate.title);
+      const meta = element("div", "meta");
+      chips([
+        sourceLabel(item.candidate.source),
+        inventoryLabel(item.candidate),
+        ...item.requirement_titles,
+      ], meta);
+      row.append(heading, meta);
+      if (Array.isArray(item.usage)) {
+        item.usage.forEach((usage) => {
+          row.append(element("p", "stack-use", `${usage.role}：${usage.use_case}`));
+          if (usage.integration) row.append(element("p", "stack-integration", `組み込み：${usage.integration}`));
+        });
+      } else {
+        row.append(element("p", "stack-use", `${item.requirement_titles.join(" / ")}を担当する候補`));
+      }
+      list.append(row);
     });
-    if (!plan.selected.length) list.append(element("li", "", "保存済み候補が不足しています"));
+    if (!plan.selected.length) list.append(element("p", "muted", "関連性を確認できる候補が不足しています"));
     card.append(list);
+    if (plan.missing?.length) card.append(element("p", "risk", `未充足：${plan.missing.join(" / ")}`));
     root.append(card);
   });
 }
@@ -388,24 +411,11 @@ function renderRecommendations(result) {
   result.requirements.forEach((req) => {
     const group = element("section", "recommendation-group");
     group.append(element("h4", "", req.title));
-    const lanes = element("div", "recommendation-lanes");
-    const grouped = result.recommendation_groups?.[req.key] || {};
-    SEARCH_LANES.forEach((lane) => {
-      const column = element("section", `recommendation-lane lane-${lane.key}`);
-      const options = grouped[lane.key] || [];
-      const heading = element("header");
-      heading.append(element("h5", "", lane.label));
-      heading.append(element("span", "lane-count", String(options.length)));
-      column.append(heading);
-      if (!options.length) {
-        column.append(element("p", "muted", lane.key === "asset_store_market"
-          ? "公式検索から候補を保存できます。"
-          : "この要件に合う候補はまだありません。"));
-      }
-      options.forEach((item, index) => column.append(candidateCard(item, index)));
-      lanes.append(column);
-    });
-    group.append(lanes);
+    const options = result.recommendations?.[req.key] || [];
+    const list = element("div", "recommendation-list");
+    if (!options.length) list.append(element("p", "muted", "この要件に関連すると確認できる候補はまだありません。"));
+    options.slice(0, 12).forEach((item, index) => list.append(candidateCard(item, index)));
+    group.append(list);
     root.append(group);
   });
 }
@@ -492,6 +502,7 @@ async function analyze() {
         platform: preferences.platform,
         budget: preferences.budget,
         remote: $("#remote").checked,
+        use_llm: $("#use-llm").checked,
       }),
     });
     renderResult(result);

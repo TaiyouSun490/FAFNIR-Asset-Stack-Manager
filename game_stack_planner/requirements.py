@@ -74,6 +74,42 @@ _CAPABILITIES: tuple[_Capability, ...] = (
         "移動経路と意思決定を分けて実装します。",
     ),
     _Capability(
+        "interaction", "探索・インタラクション",
+        "unity interaction examine pickup lock framework",
+        (
+            "interaction", "interact", "examine", "pickup", "door", "key",
+            "探索", "調べる", "拾う", "扉", "ドア", "鍵", "かぎ",
+        ),
+        "扉、鍵、調査対象、取得物を共通の操作規約で扱います。",
+    ),
+    _Capability(
+        "puzzle", "パズル・脱出ギミック",
+        "unity escape puzzle logic clue keypad lock",
+        (
+            "puzzle", "escape room", "escape game", "riddle", "clue",
+            "keypad", "パズル", "脱出", "だしゅつ", "謎解き", "ギミック",
+        ),
+        "手掛かり、条件判定、解除状態と再試行をデータとして管理します。",
+    ),
+    _Capability(
+        "horror_atmosphere", "ホラー演出・環境",
+        "unity horror scary abandoned dark environment props",
+        (
+            "horror", "scary", "haunted", "ホラー", "恐怖", "怖い",
+            "廃墟", "心霊",
+        ),
+        "舞台美術、視界制限、驚かせ方をゲーム進行と分離して設計します。",
+    ),
+    _Capability(
+        "lighting", "照明・ポストプロセス",
+        "unity lighting volumetric flashlight post processing darkness",
+        (
+            "lighting", "light", "volumetric", "flashlight", "darkness",
+            "照明", "ライト", "懐中電灯", "暗闇", "ポストプロセス",
+        ),
+        "可読性を保ちながら暗さ、霧、ライト、画面効果を統一します。",
+    ),
+    _Capability(
         "procedural_generation", "プロシージャル生成",
         "unity procedural dungeon level generation",
         ("procedural", "random dungeon", "roguelike", "roguelite", "自動生成", "ランダム生成", "ローグライク", "ローグライト"),
@@ -201,6 +237,17 @@ _ARCHETYPE_EXPANSIONS: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
     (
         ("fps", "tps", "third person", "first person", "三人称", "一人称"),
         ("character_controller", "camera", "combat"),
+    ),
+    (
+        ("escape room", "escape game", "脱出", "だしゅつ", "謎解き"),
+        ("character_controller", "camera", "interaction", "puzzle", "audio"),
+    ),
+    (
+        ("horror", "scary", "haunted", "ホラー", "恐怖", "怖い"),
+        (
+            "character_controller", "camera", "interaction",
+            "horror_atmosphere", "lighting", "audio",
+        ),
     ),
 )
 

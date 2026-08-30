@@ -34,6 +34,20 @@ class AssetStoreTaxonomyTests(unittest.TestCase):
             "editor_tools",
         }.issubset(keys))
 
+    def test_horror_escape_brief_expands_into_a_buildable_feature_set(self):
+        keys = {item.key for item in derive_requirements(
+            "ただのホラーだしゅつゲーム"
+        )}
+        self.assertTrue({
+            "character_controller",
+            "camera",
+            "interaction",
+            "puzzle",
+            "horror_atmosphere",
+            "lighting",
+            "audio",
+        }.issubset(keys))
+
 
 if __name__ == "__main__":
     unittest.main()
