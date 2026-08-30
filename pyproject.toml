@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stackforge-unity"
+version = "0.2.0"
+description = "A local-first planner that compares owned Unity assets, Asset Store candidates, GitHub repositories, and OpenUPM packages."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Taiyou_Sun" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<10",
+]
+
+[project.scripts]
+game-stack = "game_stack_planner.cli:main"
+game-stack-native-host = "game_stack_planner.native_messaging:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["game_stack_planner*"]
+
+[tool.setuptools.package-data]
+"game_stack_planner" = ["static/*.html", "static/*.css", "static/*.js"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]

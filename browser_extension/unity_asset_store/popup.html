@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stackforge Asset Store RAG</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="popup.js" defer></script>
+</head>
+<body>
+  <header>
+    <img class="mark" src="icons/icon48.png" width="34" height="34" alt="">
+    <div><strong>STACKFORGE</strong><small>ASSET STORE CAPTURE &amp; RAG</small></div>
+    <span id="connection" class="connection">確認中</span>
+  </header>
+  <main>
+    <section class="product-card">
+      <p class="eyebrow">CURRENT PRODUCT</p>
+      <h1 id="product-title">商品ページを確認中…</h1>
+      <p id="product-note">Unity Asset Storeの商品ページでのみ登録できます。</p>
+    </section>
+    <fieldset>
+      <legend>この商品で補う機能</legend>
+      <p>選択した用途でStackforgeの横断検索に再利用します。</p>
+      <div id="categories" class="categories"></div>
+    </fieldset>
+    <label for="notes">メモ（任意）</label>
+    <textarea id="notes" maxlength="1000" rows="3" placeholder="候補にした理由、対応Unityなど"></textarea>
+    <button id="save" class="primary" disabled>購入未確認候補として保存</button>
+    <section class="owned-rag">
+      <p class="eyebrow">PURCHASED ASSET RAG</p>
+      <label for="user-alias">自分用の呼び名（任意）</label>
+      <input id="user-alias" type="text" maxlength="200" placeholder="例：いつもの水シェーダー">
+      <label class="owned-confirmation" for="owned-confirmation">
+        <input id="owned-confirmation" type="checkbox" disabled>
+        <span>このアセットを購入済みとして自己申告します</span>
+      </label>
+      <p>呼び名・メモ・用途のいずれかを追加してください。購入証明の検証ではなく、ローカルでの利用可否も別途確認が必要です。</p>
+      <button id="save-owned-rag" class="owned" disabled>購入済みとしてRAG登録（自己申告）</button>
+    </section>
+    <button id="open-stackforge" class="secondary">Stackforgeを開く</button>
+    <p id="status" role="status">ページ本文・アセット・画像・Cookieは取得しません。</p>
+  </main>
+  <footer>RAG/AIに見せる追加情報は、自分で入力した呼び名・メモ・用途だけです。</footer>
+</body>
+</html>

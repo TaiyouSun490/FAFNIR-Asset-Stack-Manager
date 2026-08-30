@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Stackforge — Unity Game Stack Planner</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Stackforge home">
+        <span class="brand-mark">SF</span>
+        <span><strong>STACKFORGE</strong><small>Unity Game Stack Planner</small></span>
+      </a>
+      <nav class="tabs" aria-label="Main">
+        <button class="tab active" data-view="planner">Planner</button>
+        <button class="tab" data-view="catalog">Catalog</button>
+      </nav>
+      <div id="health" class="health"><i></i><span>確認中</span></div>
+    </header>
+
+    <main>
+      <section id="planner-view" class="view active">
+        <div class="hero">
+          <div>
+            <p class="eyebrow">FROM IDEA TO BUILDABLE STACK</p>
+            <h1>作りたいゲームを、<br><em>実装可能な構成</em>へ。</h1>
+            <p class="lead">手持ちのAsset Store資産、購入未確認の商品候補、GitHub・OpenUPMの公開実装を、同じ機能要件で横断比較します。</p>
+          </div>
+          <div class="stats" aria-label="Catalog stats">
+            <div><strong id="stat-total">—</strong><span>CATALOG</span></div>
+            <div><strong id="stat-owned">—</strong><span>MY ASSETS / LOCAL</span></div>
+            <div><strong id="stat-market">—</strong><span>STORE CANDIDATES</span></div>
+            <div><strong id="stat-community">—</strong><span>GIT / OPENUPM</span></div>
+          </div>
+        </div>
+
+        <div class="workspace">
+          <section class="brief panel">
+            <div class="panel-heading">
+              <span class="step">01</span>
+              <div><p class="kicker">GAME BRIEF</p><h2>どんなゲームを作る？</h2></div>
+            </div>
+            <label for="prompt">ゲーム案・必要な体験</label>
+            <textarea id="prompt" rows="6" maxlength="8000" placeholder="例：4人協力型ローグライト。自動生成ダンジョンを探索し、装備を集めてボスと戦う。Steam Deck対応。"></textarea>
+            <div class="examples" aria-label="Example prompts">
+              <button data-example="4人協力型ローグライト。自動生成ダンジョン、装備収集、ボス戦。Steam Deck対応。">協力ローグライト</button>
+              <button data-example="Quest向けVRパズル。手で掴んで物理ギミックを解く。セーブと日本語・英語対応。">Quest VRパズル</button>
+              <button data-example="スマホ向け2D経営シミュレーション。データ保存、チュートリアル、ローカライズが必要。">モバイル経営SIM</button>
+            </div>
+
+            <div class="field-grid">
+              <label>ターゲット
+                <select id="platform">
+                  <option value="pc">PC</option>
+                  <option value="mobile">Mobile</option>
+                  <option value="webgl">WebGL</option>
+                  <option value="vr">PC VR</option>
+                  <option value="quest">Quest</option>
+                </select>
+              </label>
+              <label>優先方針
+                <select id="budget">
+                  <option value="mixed">品質と費用のバランス</option>
+                  <option value="owned_first">手持ち・導入済み優先</option>
+                  <option value="free">無料・OSSのみ</option>
+                </select>
+              </label>
+            </div>
+
+            <label for="project-path">Unityプロジェクト（任意）</label>
+            <div class="input-action">
+              <input id="project-path" type="text" maxlength="2048" autocomplete="off" placeholder="C:\Projects\MyGame">
+              <button id="scan-button" class="button secondary">診断</button>
+            </div>
+            <div id="project-summary" class="project-summary hidden"></div>
+
+            <label class="switch-row">
+              <span><strong>GitHub / OpenUPMを検索</strong><small>オフにすると保存済みカタログだけで分析</small></span>
+              <input id="remote" type="checkbox" checked>
+              <i aria-hidden="true"></i>
+            </label>
+            <button id="analyze-button" class="button primary">
+              <span>構成案をつくる</span><b>→</b>
+            </button>
+            <p id="form-message" class="form-message" role="status"></p>
+          </section>
+
+          <section class="output">
+            <div id="empty-state" class="empty-state panel">
+              <div class="diagram" aria-hidden="true">
+                <span>IDEA</span><i></i><span>NEEDS</span><i></i><span>STACK</span>
+              </div>
+              <h2>ブリーフから始めましょう</h2>
+              <p>必要機能、候補の根拠、互換性リスクをまとめた3種類の実装プランを生成します。</p>
+            </div>
+
+            <div id="results" class="hidden">
+              <div class="result-toolbar">
+                <div><p class="kicker">RECOMMENDATION</p><h2>ゲーム構成案</h2></div>
+                <div>
+                  <button id="copy-button" class="icon-button">JSONをコピー</button>
+                  <button id="download-button" class="icon-button">保存</button>
+                </div>
+              </div>
+              <section class="panel section-card">
+                <div class="section-title"><span>01</span><h3>機能ブループリント</h3></div>
+                <div id="requirements" class="requirements"></div>
+              </section>
+              <section class="panel section-card">
+                <div class="section-title"><span>02</span><h3>推奨プラン</h3></div>
+                <div id="plans" class="plans"></div>
+              </section>
+              <section class="panel section-card">
+                <div class="section-title"><span>03</span><h3>3つの検索元を横断比較</h3></div>
+                <div id="recommendations" class="recommendations"></div>
+              </section>
+              <section class="panel section-card">
+                <div class="section-title"><span>04</span><h3>Asset Storeで補完</h3></div>
+                <p class="muted">Asset Storeは自動巡回せず公式検索ページを開きます。専用Chrome拡張または手動入力で、閲覧中の商品を購入未確認候補として保存できます。</p>
+                <div id="asset-searches" class="asset-searches"></div>
+              </section>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="catalog-view" class="view">
+        <div class="catalog-header">
+          <div><p class="eyebrow">YOUR EVIDENCE LIBRARY</p><h1>保存カタログ</h1><p>手持ち・ローカル、購入未確認候補、GitHub / OpenUPMを分けて検索できます。</p></div>
+          <button id="open-pin-button" class="button primary compact">＋ Asset Store商品を保存</button>
+        </div>
+        <div class="catalog-layout">
+          <aside class="panel filters">
+            <section class="rag-summary" aria-labelledby="rag-summary-title">
+              <p class="kicker">PRIVATE RETRIEVAL</p>
+              <div class="rag-summary-count">
+                <strong id="rag-count">0</strong>
+                <span id="rag-summary-title">購入済みRAG</span>
+              </div>
+              <p>AIに見えるのは、あなたが入力した別名・メモ・カテゴリだけです。Asset Storeの本文・画像・アセット内容は登録しません。</p>
+            </section>
+            <label>検索<input id="catalog-query" type="search" placeholder="名前・タグ・機能"></label>
+            <label>検索レーン
+              <select id="catalog-scope">
+                <option value="">すべて</option>
+                <option value="owned_assets">手持ち・ローカル</option>
+                <option value="asset_store_market">購入未確認候補</option>
+                <option value="community">GitHub / OpenUPM</option>
+              </select>
+            </label>
+            <label>ソース
+              <select id="catalog-source">
+                <option value="">すべて</option>
+                <option value="local">Local</option>
+                <option value="github">GitHub</option>
+                <option value="openupm">OpenUPM</option>
+                <option value="asset_store">Asset Store</option>
+                <option value="asset_store_cache">Asset Store cache</option>
+              </select>
+            </label>
+            <label>状態
+              <select id="catalog-ownership">
+                <option value="">すべて</option>
+                <option value="installed">導入済み</option>
+                <option value="owned">所有済み</option>
+                <option value="candidate">候補</option>
+                <option value="unknown">不明</option>
+              </select>
+            </label>
+            <button id="catalog-search-button" class="button secondary">絞り込む</button>
+            <section class="cache-import" aria-labelledby="cache-import-title">
+              <h3 id="cache-import-title">Unityローカル資産</h3>
+              <p>このPCにダウンロード済みの .unitypackage を取り込みます。My Assets全件や購入確認を意味しません。</p>
+              <label>キャッシュ場所（通常は空欄）<input id="cache-path" type="text" maxlength="2048" placeholder="標準のAsset Store-5.x"></label>
+              <button id="scan-cache-button" class="button secondary">ローカルキャッシュを取込</button>
+              <p id="cache-message" class="muted" role="status"></p>
+            </section>
+          </aside>
+          <section>
+            <div class="catalog-meta"><strong id="catalog-count">0</strong><span>件</span></div>
+            <div id="catalog-items" class="catalog-items"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="pin-dialog">
+    <form id="pin-form">
+      <div class="modal-head"><div><p class="kicker">MANUAL CAPTURE</p><h2>Asset Store商品を保存</h2></div><button type="button" id="close-pin-button" aria-label="閉じる">×</button></div>
+      <p>ページは読み取りません。公式URLと入力内容だけをローカルカタログへ保存します。</p>
+      <label>公式商品URL<input id="pin-url" type="url" required placeholder="https://assetstore.unity.com/packages/..."></label>
+      <label>商品名<input id="pin-title" type="text" maxlength="500" required></label>
+      <label>メモ<textarea id="pin-notes" rows="4" maxlength="4000" placeholder="用途、対応Unity、候補にした理由など"></textarea></label>
+      <fieldset class="category-field">
+        <legend>対応する機能</legend>
+        <p id="pin-category-hint">この商品で補える機能を選ぶと、次回の構成案で候補として再利用できます。</p>
+        <div id="pin-categories" class="category-picker"></div>
+      </fieldset>
+      <label>状態
+        <select id="pin-ownership"><option value="candidate">検討中</option><option value="owned">購入済み</option><option value="unknown">不明</option></select>
+      </label>
+      <fieldset id="pin-rag-fields" class="rag-registration hidden">
+        <legend>購入済みRAGへの登録</legend>
+        <p>AIに見えるのは、あなたが入力した別名・メモ・カテゴリだけです。Asset Storeの本文・画像・アセット内容は登録しません。</p>
+        <label>AI用の別名
+          <input id="pin-user-alias" type="text" maxlength="200" autocomplete="off" placeholder="例：手持ちのインベントリーツール">
+        </label>
+        <label class="purchase-confirmation">
+          <input id="pin-purchase-confirmation" type="checkbox">
+          <span><strong>私はこの商品を購入済みです（自己申告）</strong><small>Unityによる購入確認ではありません。</small></span>
+        </label>
+      </fieldset>
+      <p id="pin-message" class="form-message" role="status"></p>
+      <button id="pin-submit-button" type="submit" class="button primary">ローカルへ保存</button>
+    </form>
+  </dialog>
+
+  <dialog id="install-dialog" class="install-dialog">
+    <form id="install-form">
+      <div class="modal-head">
+        <div><p class="kicker">SAFE INSTALL PLAN</p><h2 id="install-title">導入内容を確認</h2></div>
+        <button type="button" id="close-install-button" aria-label="閉じる">×</button>
+      </div>
+      <div class="install-state">
+        <span id="install-status" class="install-status">確認中</span>
+        <p id="install-state-copy"></p>
+      </div>
+      <dl class="install-summary-grid">
+        <div><dt>計画種別</dt><dd id="install-kind">—</dd></div>
+        <div><dt>対象プロジェクト</dt><dd id="install-target">—</dd></div>
+        <div><dt>パッケージ</dt><dd id="install-package">—</dd></div>
+        <div><dt>固定バージョン</dt><dd id="install-version">—</dd></div>
+        <div><dt>ライセンス</dt><dd id="install-license">—</dd></div>
+      </dl>
+      <section class="install-section" aria-labelledby="manifest-diff-title">
+        <h3 id="manifest-diff-title">Packages/manifest.json の変更差分</h3>
+        <pre id="install-manifest-diff" class="manifest-preview"></pre>
+      </section>
+      <section class="install-section" aria-labelledby="install-risks-title">
+        <h3 id="install-risks-title">確認事項・リスク</h3>
+        <ul id="install-risks" class="install-risks"></ul>
+      </section>
+      <section class="install-section" aria-labelledby="install-verification-title">
+        <h3 id="install-verification-title">導入後の確認</h3>
+        <p id="install-verification" class="install-copy"></p>
+      </section>
+      <section class="install-section rollback-note" aria-labelledby="rollback-title">
+        <h3 id="rollback-title">ロールバック制限</h3>
+        <p id="install-rollback"></p>
+      </section>
+      <section id="install-result-section" class="install-section hidden" aria-labelledby="install-result-title">
+        <h3 id="install-result-title">実行結果</h3>
+        <pre id="install-result" class="install-result"></pre>
+      </section>
+      <p id="install-message" class="form-message" role="status"></p>
+      <div class="modal-actions">
+        <button type="button" id="cancel-install-button" class="button secondary">閉じる</button>
+        <button type="submit" id="confirm-install-button" class="button primary" disabled>承認して導入</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+</body>
+</html>
