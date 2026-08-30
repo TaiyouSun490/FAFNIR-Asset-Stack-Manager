@@ -90,6 +90,7 @@ namespace Stackforge.Editor
         private static MethodInfo _getPurchases;
         private static int _offset;
         private static bool _hiddenPass;
+        private static bool _hiddenAssetsSkipped;
 
         internal static void Start()
         {
@@ -102,6 +103,7 @@ namespace Stackforge.Editor
             Records.Clear();
             _offset = 0;
             _hiddenPass = false;
+            _hiddenAssetsSkipped = false;
             Notify();
 
             try
@@ -170,8 +172,12 @@ namespace Stackforge.Editor
                 CultureInfo.InvariantCulture);
             if (query == null)
                 throw new InvalidOperationException("Unity My Assets query could not be created.");
-            if (_hiddenPass)
-                SetHiddenFilter(query);
+            if (_hiddenPass && !TrySetHiddenFilter(query))
+            {
+                _hiddenAssetsSkipped = true;
+                WriteExport();
+                return;
+            }
 
             ParameterInfo[] parameters = _getPurchases.GetParameters();
             Delegate success = CreateCallback(parameters[1].ParameterType, "OnPage");
@@ -179,16 +185,25 @@ namespace Stackforge.Editor
             _getPurchases.Invoke(_restApi, new object[] { query, success, failure });
         }
 
-        private static void SetHiddenFilter(object query)
+        private static bool TrySetHiddenFilter(object query)
         {
-            Type statusType = RequireType("PageFilterStatus");
-            object hidden = Enum.Parse(statusType, "Hidden");
-            MethodInfo update = _queryType.GetMethod(
-                "UpdateStatus",
-                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo update = _queryType
+                .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .FirstOrDefault(method =>
+                {
+                    ParameterInfo[] values = method.GetParameters();
+                    return method.Name == "UpdateStatus"
+                        && values.Length == 1
+                        && values[0].ParameterType.IsEnum;
+                });
             if (update == null)
-                throw new MissingMethodException("Unity hidden-assets filter is unavailable.");
+                return false;
+            Type statusType = update.GetParameters()[0].ParameterType;
+            if (!Enum.GetNames(statusType).Contains("Hidden"))
+                return false;
+            object hidden = Enum.Parse(statusType, "Hidden");
             update.Invoke(query, new[] { hidden });
+            return true;
         }
 
         private static Delegate CreateCallback(Type delegateType, string methodName)
@@ -316,8 +331,10 @@ namespace Stackforge.Editor
             }
             isRunning = false;
             lastCount = Records.Count;
-            status = "同期ファイルを書き出しました。Stackforgeで「所有アセットを同期」を押してください。";
-            messageType = MessageType.Info;
+            status = _hiddenAssetsSkipped
+                ? "通常のMy Assetsを書き出しました。このUnity版では非表示商品の取得に対応していません。"
+                : "同期ファイルを書き出しました。Stackforgeで「所有アセットを同期」を押してください。";
+            messageType = _hiddenAssetsSkipped ? MessageType.Warning : MessageType.Info;
             Notify();
         }
 

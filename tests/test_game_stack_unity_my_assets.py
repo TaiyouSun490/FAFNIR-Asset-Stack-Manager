@@ -152,6 +152,9 @@ class UnityBridgeStaticTests(unittest.TestCase):
         self.assertEqual(["Editor"], assembly["includePlatforms"])
         self.assertIn("IAssetStoreRestAPI", source)
         self.assertIn("stackforge.unity-my-assets.v1", source)
+        self.assertIn('method.Name == "UpdateStatus"', source)
+        self.assertIn("values[0].ParameterType", source)
+        self.assertNotIn('RequireType("PageFilterStatus")', source)
         for forbidden in (
             "accessToken",
             "Authorization",
