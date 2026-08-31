@@ -24,16 +24,14 @@ class StaticGuiTests(unittest.TestCase):
             "fafnir-mark.svg",
             "fafnir-logo-rune.svg",
             "fafnir-logo-flat.svg",
-            "fafnir-logo-graffiti.svg",
-            "fafnir-logo-cartoon.svg",
         ):
             with self.subTest(name=name):
                 self.assertTrue((self.root / name).is_file())
         brand = (self.root / "brand.html").read_text(encoding="utf-8")
         self.assertIn("Rune Vault", brand)
         self.assertIn("Flat Geometry", brand)
-        self.assertIn("Graffiti Slash", brand)
-        self.assertIn("Western Stylized", brand)
+        self.assertNotIn("Graffiti Slash", brand)
+        self.assertNotIn("Western Stylized", brand)
         self.assertIn('src="/fafnir-logo-rune.svg"', self.html)
         self.assertIn("Fafnir — Asset Stack Manager", self.html)
         self.assertNotIn("STACKFORGE /", self.html)

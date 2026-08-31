@@ -220,7 +220,7 @@ That reference source is not copied or redistributed by Fafnir.
 ## Documentation
 
 - [日本語の利用ガイド（UI・CLI・Codex・Claude・ローカルRAG）](docs/USER_GUIDE.md)
-- [Brand guide and four logo variants](docs/BRAND.md)
+- [Brand guide and approved logo variants](docs/BRAND.md)
 - [Planner workflow](docs/GAME_STACK_PLANNER.md)
 - [Federated source model](docs/GAME_STACK_FEDERATED_SEARCH.md)
 - [Approval-gated installation](docs/GAME_STACK_INSTALLATION.md)

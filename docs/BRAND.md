@@ -15,11 +15,12 @@
 | --- | --- | --- |
 | Rune Vault | `fafnir-logo-rune.svg` | 推奨。アプリヘッダ、README、配布物 |
 | Flat Geometry | `fafnir-logo-flat.svg` | 企業向け資料、明快さを優先する場面 |
-| Graffiti Slash | `fafnir-logo-graffiti.svg` | 告知画像やイベント。小サイズには使わない |
-| Western Stylized | `fafnir-logo-cartoon.svg` | 海外Asset Store風の告知、拡張機能、オンボーディング |
 | Rune mark | `fafnir-mark.svg` | favicon、正方形アイコン、小サイズ |
 
-ブラウザで `/brand.html` を開くと4案を同じ条件で比較できます。
+ブラウザで `/brand.html` を開くと採用可能な2案を同じ条件で比較できます。
+
+グラフィティと2Dカートゥーンは、SVGラフおよび画像生成案を不採用としました。
+完成案として扱わず、必要になった場合は専用のアートディレクションと作画工程を別途設けます。
 
 ## Rune Vault concept
 
