@@ -86,6 +86,30 @@ class StackforgeMcpBoundaryTests(unittest.TestCase):
             ["asset_store:20"],
         )
 
+    def test_reindex_tool_queues_work_and_returns_state_immediately(self):
+        result = self.tools.reindex_owned_asset_rag()
+
+        self.assertFalse(result["accepted"])
+        self.assertEqual("disabled", result["rag_index"]["state"])
+
+    def test_rag_search_returns_labeled_owned_only_fallback(self):
+        self.app.save_owned_rag({
+            "url": "https://assetstore.unity.com/packages/package/99101",
+            "title": "Private store title",
+            "user_alias": "Hospital environment",
+            "notes": "horror rooms",
+            "categories": ["visual_assets"],
+            "purchase_confirmation": True,
+        })
+
+        result = self.tools.search_owned_asset_rag("怖い医療施設")
+
+        self.assertEqual("lexical_fallback", result["retrieval_mode"])
+        self.assertTrue(result["degraded"])
+        self.assertEqual(1, result["count"])
+        self.assertEqual("asset_store:99101", result["items"][0]["candidate_id"])
+        self.assertEqual("disabled", result["index"]["state"])
+
 
 class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
     async def test_server_lists_read_and_approval_gated_write_tools(self):
@@ -97,6 +121,7 @@ class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
                     tools = {item.name: item for item in result.tools}
                     self.assertIn("retrieve_game_stack_evidence", tools)
                     self.assertIn("search_unity_assets", tools)
+                    self.assertIn("reindex_owned_asset_rag", tools)
                     self.assertIn("prepare_candidate_install", tools)
                     self.assertIn("apply_reviewed_install", tools)
                     self.assertTrue(
@@ -105,11 +130,17 @@ class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(
                         tools["apply_reviewed_install"].annotations.destructive_hint
                     )
+                    self.assertTrue(
+                        tools["reindex_owned_asset_rag"].annotations.open_world_hint
+                    )
 
                     called = await client.call_tool("stackforge_status", {})
                     self.assertFalse(called.is_error)
                     self.assertEqual(
                         called.structured_content["catalog"]["total"], 0
+                    )
+                    self.assertEqual(
+                        called.structured_content["rag_index"]["state"], "empty"
                     )
             finally:
                 app.close()

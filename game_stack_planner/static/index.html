@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="dark">
   <title>Stackforge — Unity Game Stack Planner</title>
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
@@ -13,11 +13,11 @@
     <header class="topbar">
       <a class="brand" href="/" aria-label="Stackforge home">
         <span class="brand-mark">SF</span>
-        <span><strong>STACKFORGE</strong><small>Unity Game Stack Planner</small></span>
+        <span><strong>STACKFORGE</strong><small>UNITY ASSET WORKBENCH</small></span>
       </a>
       <nav class="tabs" aria-label="Main">
-        <button class="tab active" data-view="planner">Planner</button>
-        <button class="tab" data-view="catalog">Catalog</button>
+        <button class="tab active" data-view="planner">STACK</button>
+        <button class="tab" data-view="catalog">ASSETS</button>
       </nav>
       <div id="health" class="health"><i></i><span>確認中</span></div>
     </header>
@@ -26,15 +26,15 @@
       <section id="planner-view" class="view active">
         <div class="hero">
           <div>
-            <p class="eyebrow">FROM IDEA TO BUILDABLE STACK</p>
-            <h1>作りたいゲームを、<br><em>実装可能な構成</em>へ。</h1>
-            <p class="lead">手持ちのAsset Store資産、購入未確認の商品候補、GitHub・OpenUPMの公開実装を、同じ機能要件で横断比較します。</p>
+            <p class="eyebrow">STACKFORGE / STACK BUILDER</p>
+            <h1>実装構成</h1>
+            <p class="lead">所有アセット優先。要件、互換性、導入状態から候補を選定。</p>
           </div>
           <div class="stats" aria-label="Catalog stats">
-            <a href="/?view=catalog"><strong id="stat-total">—</strong><span>CATALOG</span></a>
-            <a href="/?view=catalog&amp;scope=owned_assets"><strong id="stat-owned">—</strong><span>MY ASSETS / LOCAL</span></a>
-            <a href="/?view=catalog&amp;scope=asset_store_market"><strong id="stat-market">—</strong><span>STORE CANDIDATES</span></a>
-            <a href="/?view=catalog&amp;scope=community"><strong id="stat-community">—</strong><span>GIT / OPENUPM</span></a>
+            <a href="/?view=catalog"><strong id="stat-total">—</strong><span>ALL ASSETS</span></a>
+            <a href="/?view=catalog&amp;scope=owned_assets"><strong id="stat-owned">—</strong><span>OWNED / LOCAL</span></a>
+            <a href="/?view=catalog&amp;scope=asset_store_market"><strong id="stat-market">—</strong><span>STORE QUEUE</span></a>
+            <a href="/?view=catalog&amp;scope=community"><strong id="stat-community">—</strong><span>OSS</span></a>
           </div>
         </div>
 
@@ -42,10 +42,10 @@
           <section class="brief panel">
             <div class="panel-heading">
               <span class="step">01</span>
-              <div><p class="kicker">GAME BRIEF</p><h2>どんなゲームを作る？</h2></div>
+              <div><p class="kicker">INPUT</p><h2>ゲーム要件</h2></div>
             </div>
-            <label for="prompt">ゲーム案・必要な体験</label>
-            <textarea id="prompt" rows="6" maxlength="8000" placeholder="例：4人協力型ローグライト。自動生成ダンジョンを探索し、装備を集めてボスと戦う。Steam Deck対応。"></textarea>
+            <label for="prompt">仕様</label>
+            <textarea id="prompt" rows="6" maxlength="8000" placeholder="ゲームの前提、必要機能、対象環境を入力"></textarea>
             <div class="examples" aria-label="Example prompts">
               <button data-example="4人協力型ローグライト。自動生成ダンジョン、装備収集、ボス戦。Steam Deck対応。">協力ローグライト</button>
               <button data-example="Quest向けVRパズル。手で掴んで物理ギミックを解く。セーブと日本語・英語対応。">Quest VRパズル</button>
@@ -53,7 +53,7 @@
             </div>
 
             <div class="field-grid">
-              <label>ターゲット
+              <label>対象環境
                 <select id="platform">
                   <option value="pc">PC</option>
                   <option value="mobile">Mobile</option>
@@ -62,29 +62,29 @@
                   <option value="quest">Quest</option>
                 </select>
               </label>
-              <label>優先方針
+              <label>選定基準
                 <select id="budget">
-                  <option value="mixed">品質と費用のバランス</option>
-                  <option value="owned_first">手持ち・導入済み優先</option>
-                  <option value="free">無料・OSSのみ</option>
+                  <option value="mixed">所有・品質・費用</option>
+                  <option value="owned_first">所有アセット優先</option>
+                  <option value="free">OSS限定</option>
                 </select>
               </label>
             </div>
 
-            <label for="project-path">Unityプロジェクト（任意）</label>
+            <label for="project-path">Unity Project</label>
             <div class="input-action">
               <input id="project-path" type="text" maxlength="2048" autocomplete="off" placeholder="C:\Projects\MyGame">
-              <button id="scan-button" class="button secondary">診断</button>
+              <button id="scan-button" class="button secondary">解析</button>
             </div>
             <div id="project-summary" class="project-summary hidden"></div>
 
             <label class="switch-row">
-              <span><strong>GitHub / OpenUPMを検索</strong><small>オフにすると保存済みカタログだけで分析</small></span>
+              <span><strong>外部候補を含める</strong><small>不足時にGitHub / OpenUPMを検索</small></span>
               <input id="remote" type="checkbox" checked>
               <i aria-hidden="true"></i>
             </label>
             <button id="analyze-button" class="button primary">
-              <span>構成案をつくる</span><b>→</b>
+              <span>構成を生成</span><b>→</b>
             </button>
             <p id="form-message" class="form-message" role="status"></p>
           </section>
@@ -92,35 +92,35 @@
           <section class="output">
             <div id="empty-state" class="empty-state panel">
               <div class="diagram" aria-hidden="true">
-                <span>IDEA</span><i></i><span>NEEDS</span><i></i><span>STACK</span>
+                <span>SPEC</span><i></i><span>ROLES</span><i></i><span>STACK</span>
               </div>
-              <h2>ブリーフから始めましょう</h2>
-              <p>必要な役割を分解し、手持ちアセットとOSSをどう使い、どう組み合わせるかまで構成します。</p>
+              <h2>要件未入力</h2>
+              <p>仕様から必要な役割と候補を生成します。</p>
             </div>
 
             <div id="results" class="hidden">
               <div class="result-toolbar">
-                <div><p class="kicker">RECOMMENDATION</p><h2>ゲーム構成案</h2></div>
+                <div><p class="kicker">OUTPUT</p><h2>実装構成</h2></div>
                 <div>
-                  <button id="copy-button" class="icon-button">JSONをコピー</button>
-                  <button id="download-button" class="icon-button">保存</button>
+                  <button id="copy-button" class="icon-button">JSON</button>
+                  <button id="download-button" class="icon-button">エクスポート</button>
                 </div>
               </div>
               <section class="panel section-card">
-                <div class="section-title"><span>01</span><h3>機能ブループリント</h3></div>
+                <div class="section-title"><span>01</span><h3>要件</h3></div>
                 <div id="requirements" class="requirements"></div>
               </section>
               <section class="panel section-card">
-                <div class="section-title"><span>02</span><h3>実装スタック</h3></div>
+                <div class="section-title"><span>02</span><h3>選定候補</h3></div>
                 <div id="plans" class="plans"></div>
               </section>
               <section class="panel section-card">
-                <div class="section-title"><span>03</span><h3>要件別の代替候補</h3></div>
+                <div class="section-title"><span>03</span><h3>代替候補</h3></div>
                 <div id="recommendations" class="recommendations"></div>
               </section>
               <section class="panel section-card">
-                <div class="section-title"><span>04</span><h3>Asset Storeで補完</h3></div>
-                <p class="muted">Asset Storeは自動巡回せず公式検索ページを開きます。専用Chrome拡張または手動入力で、閲覧中の商品を購入未確認候補として保存できます。</p>
+                <div class="section-title"><span>04</span><h3>外部補完</h3></div>
+                <p class="muted">不足要件向けのAsset Store検索。保存候補の公開情報は自動更新。</p>
                 <div id="asset-searches" class="asset-searches"></div>
               </section>
             </div>
@@ -130,25 +130,28 @@
 
       <section id="catalog-view" class="view">
         <div class="catalog-header">
-          <div><p class="eyebrow">YOUR EVIDENCE LIBRARY</p><h1>保存カタログ</h1><p>手持ち・ローカル、購入未確認候補、GitHub / OpenUPMを分けて検索できます。</p></div>
-          <button id="open-pin-button" class="button primary compact">＋ Asset Store商品を保存</button>
+          <div><p class="eyebrow">STACKFORGE / ASSETS</p><h1>アセット</h1><p>所有、導入、互換性、外部候補を横断検索。</p></div>
+          <button id="open-pin-button" class="button primary compact">＋ 候補を追加</button>
         </div>
         <div class="catalog-layout">
           <aside class="panel filters">
             <section class="rag-summary" aria-labelledby="rag-summary-title">
-              <p class="kicker">PRIVATE RETRIEVAL</p>
+              <p class="kicker">OWNED INDEX</p>
               <div class="rag-summary-count">
                 <strong id="rag-count">0</strong>
-                <span id="rag-summary-title">所有アセットRAG</span>
+                <span id="rag-summary-title">RAG</span>
               </div>
-              <p>Unity Editor同期では商品名・タグだけを登録します。Asset Storeの本文・画像・アセット内容や認証トークンは登録しません。</p>
+              <p id="rag-index-state" class="rag-index-state">索引状態を確認中…</p>
+              <p id="asset-details-state" class="rag-index-state">商品詳細を確認中…</p>
+              <p>保存対象：公開メタデータのみ。認証情報、画像、アセット本体は除外。</p>
+              <button id="refresh-asset-details-button" class="button secondary">公開情報を更新</button>
             </section>
             <label>検索<input id="catalog-query" type="search" placeholder="名前・タグ・機能"></label>
-            <label>検索レーン
+            <label>範囲
               <select id="catalog-scope">
                 <option value="">すべて</option>
-                <option value="owned_assets">手持ち・ローカル</option>
-                <option value="asset_store_market">購入未確認候補</option>
+                <option value="owned_assets">所有・ローカル</option>
+                <option value="asset_store_market">未購入候補</option>
                 <option value="community">GitHub / OpenUPM</option>
               </select>
             </label>
@@ -174,16 +177,17 @@
             <button id="catalog-search-button" class="button secondary">絞り込む</button>
             <section class="cache-import" aria-labelledby="my-assets-sync-title">
               <h3 id="my-assets-sync-title">Unity My Assets</h3>
-              <p>Unityで Tools &gt; Stackforge &gt; My Assets Sync を実行後、ログイン中の所有一覧を取り込みます。</p>
-              <label>同期ファイル（通常は空欄）<input id="my-assets-path" type="text" maxlength="2048" placeholder="標準のunity-my-assets.json"></label>
-              <button id="sync-my-assets-button" class="button secondary">所有アセットを同期</button>
+              <p>6時間ごとに自動同期。購入直後はUnityの Tools &gt; Stackforge &gt; My Assets Sync。</p>
+              <label>同期ファイル（任意）<input id="my-assets-path" type="text" maxlength="2048" placeholder="標準のunity-my-assets.json"></label>
+              <button id="sync-my-assets-button" class="button secondary">同期</button>
               <p id="my-assets-message" class="muted" role="status"></p>
             </section>
             <section class="cache-import" aria-labelledby="cache-import-title">
-              <h3 id="cache-import-title">Unityローカル資産</h3>
-              <p>このPCにダウンロード済みの .unitypackage を取り込みます。My Assets全件や購入確認を意味しません。</p>
-              <label>キャッシュ場所（通常は空欄）<input id="cache-path" type="text" maxlength="2048" placeholder="標準のAsset Store-5.x"></label>
-              <button id="scan-cache-button" class="button secondary">ローカルキャッシュを取込</button>
+              <h3 id="cache-import-title">ローカルキャッシュ</h3>
+              <p>ダウンロード済みの .unitypackage を登録。所有判定には使用しません。</p>
+              <label>キャッシュパス（任意）<input id="cache-path" type="text" maxlength="2048" placeholder="標準のAsset Store-5.x"></label>
+              <label class="check"><input id="inspect-cache-packages" type="checkbox" checked> 内容・依存・DLLを非展開検査</label>
+              <button id="scan-cache-button" class="button secondary">スキャン</button>
               <p id="cache-message" class="muted" role="status"></p>
             </section>
           </aside>
@@ -198,39 +202,39 @@
 
   <dialog id="pin-dialog">
     <form id="pin-form">
-      <div class="modal-head"><div><p class="kicker">MANUAL CAPTURE</p><h2>Asset Store商品を保存</h2></div><button type="button" id="close-pin-button" aria-label="閉じる">×</button></div>
-      <p>ページは読み取りません。公式URLと入力内容だけをローカルカタログへ保存します。</p>
+      <div class="modal-head"><div><p class="kicker">CANDIDATE</p><h2>商品候補</h2></div><button type="button" id="close-pin-button" aria-label="閉じる">×</button></div>
+      <p>公式URLと公開メタデータをローカル保存。</p>
       <label>公式商品URL<input id="pin-url" type="url" required placeholder="https://assetstore.unity.com/packages/..."></label>
       <label>商品名<input id="pin-title" type="text" maxlength="500" required></label>
       <label>メモ<textarea id="pin-notes" rows="4" maxlength="4000" placeholder="用途、対応Unity、候補にした理由など"></textarea></label>
       <fieldset class="category-field">
-        <legend>対応する機能</legend>
-        <p id="pin-category-hint">この商品で補える機能を選ぶと、次回の構成案で候補として再利用できます。</p>
+        <legend>対応要件</legend>
+        <p id="pin-category-hint">構成候補として使う要件を選択。</p>
         <div id="pin-categories" class="category-picker"></div>
       </fieldset>
       <label>状態
         <select id="pin-ownership"><option value="candidate">検討中</option><option value="owned">購入済み</option><option value="unknown">不明</option></select>
       </label>
       <fieldset id="pin-rag-fields" class="rag-registration hidden">
-        <legend>購入済みRAGへの登録</legend>
-        <p>AIに見えるのは、あなたが入力した別名・メモ・カテゴリだけです。Asset Storeの本文・画像・アセット内容は登録しません。</p>
-        <label>AI用の別名
-          <input id="pin-user-alias" type="text" maxlength="200" autocomplete="off" placeholder="例：手持ちのインベントリーツール">
+        <legend>所有索引へ登録</legend>
+        <p>別名、メモ、要件、公開商品説明を索引化。認証情報、画像、商品本体は除外。</p>
+        <label>検索用の別名
+          <input id="pin-user-alias" type="text" maxlength="200" autocomplete="off" placeholder="例：インベントリーツール">
         </label>
         <label class="purchase-confirmation">
           <input id="pin-purchase-confirmation" type="checkbox">
-          <span><strong>私はこの商品を購入済みです（自己申告）</strong><small>Unityによる購入確認ではありません。</small></span>
+          <span><strong>購入済み</strong><small>自己申告（Unityの購入確認ではありません）</small></span>
         </label>
       </fieldset>
       <p id="pin-message" class="form-message" role="status"></p>
-      <button id="pin-submit-button" type="submit" class="button primary">ローカルへ保存</button>
+      <button id="pin-submit-button" type="submit" class="button primary">保存</button>
     </form>
   </dialog>
 
   <dialog id="install-dialog" class="install-dialog">
     <form id="install-form">
       <div class="modal-head">
-        <div><p class="kicker">SAFE INSTALL PLAN</p><h2 id="install-title">導入内容を確認</h2></div>
+        <div><p class="kicker">INSTALL PLAN</p><h2 id="install-title">導入計画</h2></div>
         <button type="button" id="close-install-button" aria-label="閉じる">×</button>
       </div>
       <div class="install-state">

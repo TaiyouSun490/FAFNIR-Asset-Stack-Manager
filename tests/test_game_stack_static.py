@@ -20,15 +20,22 @@ class StaticGuiTests(unittest.TestCase):
         self.assertNotIn("<script>", self.html)
 
     def test_gui_exposes_plans_catalog_and_manual_capture(self):
-        self.assertIn("機能ブループリント", self.html)
-        self.assertIn("実装スタック", self.html)
-        self.assertIn("保存カタログ", self.html)
-        self.assertIn("Asset Store商品を保存", self.html)
+        self.assertIn("ゲーム要件", self.html)
+        self.assertIn("選定候補", self.html)
+        self.assertIn("アセット", self.html)
+        self.assertIn("商品候補", self.html)
         self.assertIn('id="pin-categories"', self.html)
         self.assertIn("/api/recommend", self.javascript)
         self.assertIn("/api/catalog/manual", self.javascript)
         self.assertIn("search.requirement", self.javascript)
         self.assertNotIn("categories: []", self.javascript)
+
+    def test_gui_copy_uses_compact_workbench_language(self):
+        self.assertIn("構成を生成", self.html)
+        self.assertIn("要件未入力", self.html)
+        self.assertNotIn("どんなゲームを作る？", self.html)
+        self.assertNotIn("ブリーフから始めましょう", self.html)
+        self.assertNotIn("構成案をつくる", self.html + self.javascript)
 
     def test_untrusted_api_text_is_not_inserted_as_html(self):
         self.assertNotIn("innerHTML", self.javascript)

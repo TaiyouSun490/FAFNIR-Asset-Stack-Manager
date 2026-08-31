@@ -53,15 +53,30 @@ POSTは、`Origin`が現在のloopback `Host` とhostname・portまで一致す�
 rollbackが保証するのは `Packages/manifest.json` の復元までです。Unityでpackageの
 Editor codeが実行された後に `Assets` や `ProjectSettings` へ生じた副作用は戻せません。
 
+## ローカルAsset Storeアセットの検証
+
+`scan-cache --inspect`は`.unitypackage`を展開・実行せず、内容種別、asmdef、UPM依存、
+Render Pipeline/Input参照、ネイティブプラグインを検査します。所有商品と一意に対応した
+キャッシュは、対象Unityプロジェクトの版・pipeline・input・platform・既存GUIDと照合できます。
+
+```powershell
+game-stack --json validate-asset asset_store:12345 --project C:\Projects\MyGame
+game-stack --json validate-asset asset_store:12345 --project C:\Projects\MyGame --compile
+```
+
+`--compile`は明示指定時だけ、対象と同じUnity Editorで一時プロジェクトを作り、対象projectの
+`Packages/manifest.json`と`.unitypackage`を入れてcompiler errorを確認します。本番projectは
+変更しません。空のstaging環境なので、シーン描画、操作性、ランタイム挙動は保証しません。
+
 ## 次の段階
 
 GitHub候補は、GitHub APIで候補repository内の `package.json`、package root、license、
 完全40桁commit SHAを検査できた場合だけ、UnityのGit dependency候補へ昇格させます。
 branch、tag、短縮SHA、任意Git URL、README内commandは実行しません。
 
-ローカル `.unitypackage` の自動importは、対象Unity versionのEditorを使ったstaging
-projectでのpreview、`Assets` / `Packages` / `ProjectSettings` のsnapshot、compile/log
-確認、本番適用前の再承認を実装してから有効化します。
+ローカル `.unitypackage` の非展開検査とstaging compileは実装済みです。本番projectへの
+自動importは、変更対象preview、`Assets` / `Packages` / `ProjectSettings` のsnapshot、
+復元検証、本番適用前の再承認を実装するまで有効化しません。
 
 参考:
 

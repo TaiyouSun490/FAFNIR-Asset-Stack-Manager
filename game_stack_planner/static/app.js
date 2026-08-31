@@ -4,6 +4,7 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 let lastResult = null;
 let toastTimer = null;
+let ragStatusTimer = null;
 let requirementCategories = [];
 let activeInstallPlan = null;
 let activeInstallNonce = "";
@@ -16,16 +17,16 @@ const INSTALL_STATUS_LABELS = {
   applied_waiting_for_unity: "適用済み・Unityの解決待ち",
 };
 const INSTALL_STATUS_COPY = {
-  ready: "固定された変更差分とリスクを確認してから、導入を承認してください。",
-  manual: "自動実行はしません。表示された確認事項に沿って手動で導入してください。",
-  needs_inspection: "package.json、導入パス、固定コミットを検査できるまで自動導入しません。",
-  already_present: "この候補は対象プロジェクトにすでに導入されています。",
-  blocked: "安全条件を満たしていないため、この計画は実行できません。",
-  applied_waiting_for_unity: "manifest.jsonへ適用しました。Unityによる依存関係の解決とコンパイル結果を確認してください。",
+  ready: "変更差分とリスクを確認後、導入を実行できます。",
+  manual: "自動導入対象外。表示内容に従って手動で導入してください。",
+  needs_inspection: "パッケージ定義、導入パス、固定コミットを確認できません。",
+  already_present: "対象プロジェクトに導入済みです。",
+  blocked: "安全条件を満たしていないため実行できません。",
+  applied_waiting_for_unity: "manifest.jsonへ適用済み。Unityの依存解決とコンパイル結果を確認してください。",
 };
 const SEARCH_LANES = [
-  {key: "owned_assets", label: "手持ち・ローカル"},
-  {key: "asset_store_market", label: "購入未確認候補"},
+  {key: "owned_assets", label: "所有・ローカル"},
+  {key: "asset_store_market", label: "未購入候補"},
   {key: "community", label: "GitHub / OpenUPM"},
 ];
 
@@ -111,6 +112,58 @@ function installActionButton(candidate) {
   return button;
 }
 
+async function validateCachedCandidate(candidate, button, compileTest = false) {
+  const projectPath = $("#project-path").value.trim();
+  if (!projectPath) {
+    showToast("Unity Projectが未指定です");
+    return;
+  }
+  if (compileTest && !window.confirm(
+    "一時Unity Projectへパッケージをimportし、コンパイルを検証します。実行しますか？",
+  )) return;
+  button.disabled = true;
+  const original = button.textContent;
+  button.textContent = compileTest ? "コンパイル中…" : "検査中…";
+  try {
+    const result = await api("/api/asset-store/validate", {
+      method: "POST",
+      body: JSON.stringify({
+        candidate_id: candidate.id,
+        project_path: projectPath,
+        platform: $("#platform").value,
+        cache_path: $("#cache-path")?.value.trim() || "",
+        compile: compileTest,
+      }),
+    });
+    showToast(`検査結果：${result.validation.overall_status}`);
+    await loadCatalog();
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+function validationActionButtons(candidate) {
+  const fragment = document.createDocumentFragment();
+  if (candidate.source !== "asset_store" || !candidate.metadata?.cache_candidate_id) {
+    return fragment;
+  }
+  const staticButton = element("button", "button secondary compact", "静的検査");
+  staticButton.type = "button";
+  staticButton.addEventListener("click", () => validateCachedCandidate(
+    candidate, staticButton, false,
+  ));
+  const compileButton = element("button", "button secondary compact", "コンパイル検証");
+  compileButton.type = "button";
+  compileButton.addEventListener("click", () => validateCachedCandidate(
+    candidate, compileButton, true,
+  ));
+  fragment.append(staticButton, compileButton);
+  return fragment;
+}
+
 function detailText(value, fallback = "—") {
   if (Array.isArray(value)) return value.filter(Boolean).join(" / ") || fallback;
   if (value && typeof value === "object") return JSON.stringify(value, null, 2);
@@ -137,7 +190,7 @@ function renderInstallPlan(payload) {
   activeInstallPlan = plan;
   activeInstallNonce = payload.approval_nonce || "";
   const status = renderInstallStatus(plan.status);
-  $("#install-title").textContent = plan.candidate?.title || "導入内容を確認";
+  $("#install-title").textContent = plan.candidate?.title || "導入計画";
   $("#install-kind").textContent = detailText(plan.kind);
   $("#install-target").textContent = detailText(
     [plan.project?.path, plan.project?.unity_version].filter(Boolean),
@@ -243,6 +296,64 @@ function updateStats(summary = {}) {
   $("#rag-count").textContent = summary.asset_rag_owned ?? 0;
 }
 
+function renderRagIndex(index = {}) {
+  const labels = {
+    empty: "対象アセットなし",
+    pending: "索引開始待ち",
+    preparing_model: "モデルを準備中",
+    building: "索引を作成中",
+    ready: "意味検索を利用可能",
+    dependency_missing: "必要コンポーネント不足",
+    error: "索引作成エラー",
+    cancelled: "索引作成を中断",
+    disabled: "意味検索は無効",
+  };
+  const count = `${index.indexed ?? 0} / ${index.documents ?? 0}`;
+  const download = index.model_download;
+  const modelProgress = download && download.total_bytes
+    ? ` · モデル ${Math.round((download.progress || 0) * 100)}%`
+    : "";
+  const error = index.error ? ` · ${index.error}` : "";
+  $("#rag-index-state").textContent = `${labels[index.state] || index.state || "不明"} · ${count}${modelProgress}${error}`;
+}
+
+function renderAssetStoreDetails(details = {}) {
+  const progress = `${details.enriched ?? 0} / ${details.owned ?? 0}`;
+  const activity = details.worker_active
+    ? "更新中"
+    : details.due
+      ? `${details.due}件待機`
+      : "最新";
+  const unavailable = details.public_page_unavailable
+    ? ` · 公開ページなし ${details.public_page_unavailable}件`
+    : "";
+  const error = details.retryable_errors && details.last_error?.message
+    ? ` · 再試行エラー: ${details.last_error.message}`
+    : "";
+  $("#asset-details-state").textContent = `商品詳細 ${progress} · ${activity}${unavailable}${error}`;
+}
+
+async function refreshAssetStoreDetails() {
+  const button = $("#refresh-asset-details-button");
+  button.disabled = true;
+  try {
+    const result = await api("/api/asset-store/details/refresh", {
+      method: "POST",
+      body: JSON.stringify({force: false}),
+    });
+    renderAssetStoreDetails({
+      ...result.asset_store_details,
+      worker_active: result.accepted || result.asset_store_details?.fetching > 0,
+    });
+    showToast(result.accepted ? "商品詳細の差分更新を開始しました" : "商品詳細は更新待ちなしです");
+    window.setTimeout(loadStatus, 1000);
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    button.disabled = false;
+  }
+}
+
 async function loadStatus() {
   try {
     const status = await api("/api/status");
@@ -253,6 +364,18 @@ async function loadStatus() {
       : [];
     renderPinCategories();
     updateStats(status.catalog);
+    renderRagIndex(status.rag_index);
+    renderAssetStoreDetails(status.asset_store_details);
+    if (ragStatusTimer) window.clearTimeout(ragStatusTimer);
+    if (
+      (
+        status.rag_index?.automatic
+        && ["pending", "preparing_model", "building"].includes(status.rag_index.state)
+      )
+      || status.asset_store_details?.worker_active
+    ) {
+      ragStatusTimer = window.setTimeout(loadStatus, 2000);
+    }
   } catch {
     $("#health span").textContent = "接続エラー";
   }
@@ -284,8 +407,8 @@ function updatePinOwnershipFields() {
   fields.disabled = !owned;
   confirmation.required = owned;
   $("#pin-submit-button").textContent = owned
-    ? "購入済みRAGへ登録"
-    : "ローカルへ保存";
+    ? "所有索引へ登録"
+    : "保存";
   if (!owned) {
     alias.value = "";
     confirmation.checked = false;
@@ -298,8 +421,8 @@ function openPinDialog(categoryKey = "") {
   updatePinOwnershipFields();
   const category = requirementCategories.find((item) => item.key === categoryKey);
   $("#pin-category-hint").textContent = category
-    ? "「" + category.title + "」の候補として保存します。必要なら他の機能も選べます。"
-    : "この商品で補える機能を選ぶと、次回の構成案で候補として再利用できます。";
+    ? `「${category.title}」の候補として登録。ほかの要件も選択できます。`
+    : "構成候補として使う要件を選択。";
   $("#pin-message").textContent = "";
   $("#pin-dialog").showModal();
   $("#pin-url").focus();
@@ -355,13 +478,13 @@ function renderPlans(result) {
           if (usage.integration) row.append(element("p", "stack-integration", `組み込み：${usage.integration}`));
         });
       } else {
-        row.append(element("p", "stack-use", `${item.requirement_titles.join(" / ")}を担当する候補`));
+        row.append(element("p", "stack-use", `用途：${item.requirement_titles.join(" / ")}`));
       }
       list.append(row);
     });
-    if (!plan.selected.length) list.append(element("p", "muted", "関連性を確認できる候補が不足しています"));
+    if (!plan.selected.length) list.append(element("p", "muted", "候補なし"));
     card.append(list);
-    if (plan.missing?.length) card.append(element("p", "risk", `未充足：${plan.missing.join(" / ")}`));
+    if (plan.missing?.length) card.append(element("p", "risk", `不足：${plan.missing.join(" / ")}`));
     root.append(card);
   });
 }
@@ -389,12 +512,14 @@ function candidateCard(item, index) {
     inventoryLabel(candidate),
     candidate.license || "",
     candidate.version ? `v${candidate.version}` : "",
+    candidate.compatibility?.status === "compatible" ? "互換性確認済み" : "",
   ], meta, candidate.ownership !== "candidate" ? "owned" : "source");
   body.append(meta);
   if (item.reasons?.length) body.append(element("div", "reason", `根拠：${item.reasons.join(" / ")}`));
   if (item.risks?.length) body.append(element("div", "risk", `確認：${item.risks.join(" / ")}`));
   const actions = element("div", "candidate-actions");
   actions.append(installActionButton(candidate));
+  actions.append(validationActionButtons(candidate));
   body.append(actions);
   card.append(body, element("div", "score", String(Math.round(item.score))));
   return card;
@@ -408,7 +533,7 @@ function renderRecommendations(result) {
     group.append(element("h4", "", req.title));
     const options = result.recommendations?.[req.key] || [];
     const list = element("div", "recommendation-list");
-    if (!options.length) list.append(element("p", "muted", "この要件に関連すると確認できる候補はまだありません。"));
+    if (!options.length) list.append(element("p", "muted", "候補なし"));
     options.slice(0, 12).forEach((item, index) => list.append(candidateCard(item, index)));
     group.append(list);
     root.append(group);
@@ -419,11 +544,11 @@ function renderAssetSearches(result) {
   const root = $("#asset-searches");
   root.replaceChildren();
   result.asset_store_searches.forEach((search) => {
-    const link = element("a", "", `${search.title}を検索 ↗`);
+    const link = element("a", "", `${search.title} ↗`);
     link.href = safeUrl(search.url);
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    const save = element("button", "", "見つけた商品を保存");
+    const save = element("button", "", "候補を追加");
     save.type = "button";
     save.addEventListener("click", () => openPinDialog(search.requirement));
     const row = element("div", "asset-search");
@@ -450,7 +575,7 @@ function renderResult(result) {
 async function scanProject() {
   const path = $("#project-path").value.trim();
   if (!path) {
-    $("#form-message").textContent = "Unityプロジェクトのパスを入力してください。";
+    $("#form-message").textContent = "Unity Projectが未指定です。";
     return;
   }
   const button = $("#scan-button");
@@ -463,7 +588,7 @@ async function scanProject() {
     renderProject(value.project);
     updateStats(value.catalog);
     localStorage.setItem("stackforge.projectPath", path);
-    showToast("Unityプロジェクトを診断しました");
+    showToast("Unity Projectを解析しました");
   } catch (error) {
     $("#form-message").textContent = error.message;
   } finally {
@@ -474,14 +599,14 @@ async function scanProject() {
 async function analyze() {
   const prompt = $("#prompt").value.trim();
   if (!prompt) {
-    $("#form-message").textContent = "作りたいゲームを入力してください。";
+    $("#form-message").textContent = "ゲーム要件が未入力です。";
     $("#prompt").focus();
     return;
   }
   const button = $("#analyze-button");
   button.disabled = true;
-  button.querySelector("span").textContent = "検索・分析中…";
-  $("#form-message").textContent = "要件を分解し、候補を照合しています。";
+  button.querySelector("span").textContent = "生成中…";
+  $("#form-message").textContent = "要件、所有、互換性、導入状態を照合中。";
   const preferences = {
     projectPath: $("#project-path").value.trim(),
     platform: $("#platform").value,
@@ -505,7 +630,7 @@ async function analyze() {
     $("#form-message").textContent = error.message;
   } finally {
     button.disabled = false;
-    button.querySelector("span").textContent = "構成案をつくる";
+    button.querySelector("span").textContent = "構成を生成";
   }
 }
 
@@ -519,12 +644,37 @@ function catalogCard(candidate) {
   }
   chips(candidate.categories || [], labels);
   card.append(labels, element("h3", "", candidate.title));
-  card.append(element("p", "", candidate.description || "説明は保存されていません。"));
+  card.append(element("p", "", candidate.description || "説明なし"));
+  const details = candidate.metadata?.asset_store_details;
+  if (details) {
+    const price = details.price?.current
+      ? `${details.price.currency || ""} ${details.price.current}`.trim()
+      : "";
+    const rating = details.rating?.average != null
+      ? `★${details.rating.average} (${details.rating.review_count || details.rating.count || 0})`
+      : "";
+    const detailMeta = element("div", "meta");
+    chips([
+      details.publisher?.name || "",
+      details.category?.name || "",
+      details.latest_version ? `v${details.latest_version}` : "",
+      details.original_unity_version ? `Unity ${details.original_unity_version}+` : "",
+      price,
+      rating,
+    ], detailMeta, "source");
+    card.append(detailMeta);
+  }
+  if (candidate.metadata?.local_validation?.overall_status) {
+    chips([
+      `検査:${candidate.metadata.local_validation.overall_status}`,
+    ], labels, "rag");
+  }
   const footer = element("footer");
   const info = element("span", "meta", candidate.license || candidate.version || "");
   footer.append(info);
   const actions = element("div", "catalog-actions");
   actions.append(installActionButton(candidate));
+  actions.append(validationActionButtons(candidate));
   const url = safeUrl(candidate.url);
   if (url) {
     const link = element("a", "", "開く ↗");
@@ -551,7 +701,7 @@ async function loadCatalog() {
     $("#catalog-count").textContent = value.count;
     const root = $("#catalog-items");
     root.replaceChildren();
-    if (!value.items.length) root.append(element("p", "muted", "該当するアイテムはありません。"));
+    if (!value.items.length) root.append(element("p", "muted", "該当なし"));
     value.items.forEach((item) => root.append(catalogCard(item)));
     updateStats(value.summary);
   } catch (error) {
@@ -567,10 +717,13 @@ async function scanAssetStoreCache() {
   try {
     const result = await api("/api/asset-store/cache/scan", {
       method: "POST",
-      body: JSON.stringify({path: $("#cache-path").value.trim()}),
+      body: JSON.stringify({
+        path: $("#cache-path").value.trim(),
+        inspect: $("#inspect-cache-packages").checked,
+      }),
     });
     const suffix = result.scan.ownership_confirmed ? "" : "（所有未確認）";
-    message.textContent = `${result.scan.found}件を取り込みました${suffix}`;
+    message.textContent = `${result.scan.found}件を取り込み、${result.scan.inspected || 0}件を内容検査しました${suffix}`;
     updateStats(result.catalog);
     await loadCatalog();
     showToast("Unityローカル資産を更新しました");
@@ -607,7 +760,9 @@ async function syncUnityMyAssets() {
       method: "POST",
       body: JSON.stringify({path: $("#my-assets-path").value.trim()}),
     });
-    message.textContent = `${result.sync.imported}件を所有アセットとして同期しました`;
+    message.textContent = result.sync.changed
+      ? `${result.sync.imported}件を所有アセットとして同期しました`
+      : `変更はありません（所有アセット ${result.sync.total}件）`;
     updateStats(result.catalog);
     await loadCatalog();
     const url = new URL(window.location.href);
@@ -615,7 +770,7 @@ async function syncUnityMyAssets() {
     url.searchParams.set("scope", "owned_assets");
     url.searchParams.delete("sync");
     window.history.replaceState({}, "", url);
-    showToast("Unity My Assetsを同期しました");
+    showToast(result.sync.changed ? "Unity My Assetsを同期しました" : "所有一覧は最新です");
   } catch (error) {
     message.textContent = error.message;
   } finally {
@@ -709,6 +864,7 @@ function bind() {
   $("#catalog-search-button").addEventListener("click", loadCatalog);
   $("#scan-cache-button").addEventListener("click", scanAssetStoreCache);
   $("#sync-my-assets-button").addEventListener("click", syncUnityMyAssets);
+  $("#refresh-asset-details-button").addEventListener("click", refreshAssetStoreDetails);
   $("#catalog-query").addEventListener("keydown", (event) => {
     if (event.key === "Enter") loadCatalog();
   });

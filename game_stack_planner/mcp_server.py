@@ -28,6 +28,44 @@ def _bounded_text(value: str, *, name: str, maximum: int) -> str:
 
 def _candidate_evidence(value: dict[str, Any]) -> dict[str, Any]:
     """Return only fields useful to model judgment, never local metadata."""
+    metadata = value.get("metadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
+    details = metadata.get("asset_store_details")
+    details = details if isinstance(details, dict) else None
+    product_details = None
+    if details is not None:
+        product_details = {
+            "source_url": details.get("source_url"),
+            "fetched_at": details.get("fetched_at"),
+            "publisher": details.get("publisher"),
+            "category": details.get("category"),
+            "product_state": details.get("product_state"),
+            "latest_version": details.get("latest_version"),
+            "latest_release_date": details.get("latest_release_date"),
+            "first_published_date": details.get("first_published_date"),
+            "original_unity_version": details.get("original_unity_version"),
+            "supported_unity_versions": list(
+                details.get("supported_unity_versions") or []
+            )[:24],
+            "render_pipeline_compatibility": list(
+                details.get("render_pipeline_compatibility") or []
+            )[:24],
+            "compatibility_info": str(
+                details.get("compatibility_info") or ""
+            )[:1200],
+            "key_features": str(details.get("key_features") or "")[:1600],
+            "dependencies": list(details.get("dependencies") or [])[:30],
+            "package_type": details.get("package_type"),
+            "custom_license": bool(details.get("custom_license")),
+            "download_size_bytes": details.get("download_size_bytes"),
+            "asset_count": details.get("asset_count"),
+            "price": details.get("price"),
+            "rating": details.get("rating"),
+        }
+    local_validation = metadata.get("local_validation")
+    local_validation = (
+        local_validation if isinstance(local_validation, dict) else None
+    )
     return {
         "id": value.get("id"),
         "title": value.get("title"),
@@ -49,6 +87,9 @@ def _candidate_evidence(value: dict[str, Any]) -> dict[str, Any]:
         "downloads": value.get("downloads", 0),
         "updated_at": value.get("updated_at"),
         "installed": bool(value.get("installed")),
+        "compatibility": value.get("compatibility"),
+        "asset_store_product_details": product_details,
+        "local_validation": local_validation,
     }
 
 
@@ -67,6 +108,10 @@ class StackforgeMcpTools:
         return {
             "version": value["version"],
             "catalog": value["catalog"],
+            "capabilities": value["capabilities"],
+            "rag_index": value["rag_index"],
+            "ownership_sync": value["ownership_sync"],
+            "asset_store_details": value["asset_store_details"],
             "requirement_categories": value["requirement_categories"],
             "workflow": (
                 "Call retrieve_game_stack_evidence for a game brief, judge concrete "
@@ -122,6 +167,70 @@ class StackforgeMcpTools:
                 query=query,
                 limit=max(1, min(int(limit), 50)),
             )
+        except ApiError as exc:
+            if exc.code in {"rag_index_not_ready", "embedding_unavailable"}:
+                return {
+                    "items": [],
+                    "count": 0,
+                    "retrieval_mode": "unavailable",
+                    "index": exc.details.get(
+                        "rag_index",
+                        self.app.repository.rag_index_status(),
+                    ),
+                    "error": {
+                        "code": exc.code,
+                        "message": str(exc),
+                    },
+                }
+            raise _api_error(exc) from exc
+
+    def reindex_owned_asset_rag(
+        self,
+        force: bool = False,
+        batch_size: int = 32,
+    ) -> dict[str, Any]:
+        try:
+            return self.app.request_rag_index(
+                force=bool(force),
+                batch_size=max(1, min(int(batch_size), 128)),
+            )
+        except ApiError as exc:
+            raise _api_error(exc) from exc
+
+    def refresh_asset_store_product_details(
+        self,
+        force: bool = False,
+    ) -> dict[str, Any]:
+        return self.app.request_asset_store_detail_sync(force=bool(force))
+
+    def validate_cached_asset_for_project(
+        self,
+        candidate_id: str,
+        project_path: str,
+        platform: str = "pc",
+        cache_path: str = "",
+        compile_test: bool = False,
+    ) -> dict[str, Any]:
+        candidate_id = _bounded_text(
+            candidate_id, name="candidate_id", maximum=300
+        )
+        project_path = _bounded_text(
+            project_path, name="project_path", maximum=2048
+        )
+        cache_path = _bounded_text(cache_path, name="cache_path", maximum=2048)
+        try:
+            result = self.app.validate_asset_candidate({
+                "candidate_id": candidate_id,
+                "project_path": project_path,
+                "platform": str(platform or "pc").casefold(),
+                "cache_path": cache_path,
+                "compile": bool(compile_test),
+            })
+            return {
+                "candidate": _candidate_evidence(result["candidate"]),
+                "validation": result["validation"],
+                "catalog": result["catalog"],
+            }
         except ApiError as exc:
             raise _api_error(exc) from exc
 
@@ -260,6 +369,7 @@ def build_mcp_server(
     db_path: str | None = None,
 ) -> tuple[MCPServer[Any], GameStackApplication]:
     app = GameStackApplication(db_path)
+    app.enable_automatic_maintenance(sync_my_assets=db_path is None)
     tools = StackforgeMcpTools(app)
     server = MCPServer(
         "stackforge",
@@ -305,9 +415,56 @@ def build_mcp_server(
     )(tools.search_catalog)
     server.tool(
         name="search_owned_asset_rag",
-        description="Search AI-safe owned-asset names, tags, aliases, notes, and categories.",
+        description=(
+            "Hybrid-search locally embedded, AI-safe owned-asset names, tags, aliases, "
+            "notes, and categories. While the complete dense generation is warming, "
+            "returns a clearly labeled owned-only lexical fallback."
+        ),
         annotations=read_only,
     )(tools.search_owned_asset_rag)
+    server.tool(
+        name="reindex_owned_asset_rag",
+        description=(
+            "Queue a background refresh of local multilingual text embeddings for "
+            "AI-safe owned-asset documents and return immediately with index state. "
+            "Normal UI/MCP startup already manages this automatically."
+        ),
+        annotations=ToolAnnotations(
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
+    )(tools.reindex_owned_asset_rag)
+    server.tool(
+        name="refresh_asset_store_product_details",
+        description=(
+            "Queue a resumable, rate-limited refresh of official public Asset Store "
+            "descriptions, versions, render-pipeline tables, dependencies, price, "
+            "and aggregate rating. Ownership remains sourced from Unity Editor."
+        ),
+        annotations=ToolAnnotations(
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=True,
+        ),
+    )(tools.refresh_asset_store_product_details)
+    server.tool(
+        name="validate_cached_asset_for_project",
+        description=(
+            "Inspect a linked downloaded .unitypackage without extracting it, compare "
+            "its GUIDs, asmdefs, UPM dependencies, Input/Render Pipeline markers and "
+            "native plugins with a Unity project. compile_test additionally imports it "
+            "into a temporary project using the matching local Unity Editor."
+        ),
+        annotations=ToolAnnotations(
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=True,
+            openWorldHint=False,
+        ),
+    )(tools.validate_cached_asset_for_project)
     server.tool(
         name="get_unity_asset_candidate",
         description="Read one exact catalog candidate by its stable candidate ID.",

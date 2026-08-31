@@ -6,12 +6,16 @@ import hashlib
 import os
 import stat
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Mapping
 
 from .models import Candidate
+from .unitypackage_inspection import (
+    UnityPackageInspectionError,
+    inspect_unitypackage,
+)
 
 _CACHE_DIR_NAME = "Asset Store-5.x"
 _DEFAULT_MAX_ITEMS = 5000
@@ -34,6 +38,7 @@ class CacheScanResult:
     roots: tuple[dict[str, object], ...]
     warnings: tuple[str, ...]
     truncated: bool
+    inspected: int = 0
 
     def summary(self) -> dict[str, object]:
         return {
@@ -41,6 +46,7 @@ class CacheScanResult:
             "roots": list(self.roots),
             "warnings": list(self.warnings),
             "truncated": self.truncated,
+            "inspected": self.inspected,
             "inventory_state": "locally_cached",
             "ownership_confirmed": False,
         }
@@ -145,6 +151,8 @@ def scan_asset_store_cache(
     environ: Mapping[str, str] | None = None,
     max_items: int = _DEFAULT_MAX_ITEMS,
     max_depth: int = _DEFAULT_MAX_DEPTH,
+    inspect_packages: bool = False,
+    max_inspect_items: int = 200,
 ) -> CacheScanResult:
     roots = discover_cache_roots(explicit_root, environ=environ)
     if explicit_root is not None and not roots:
@@ -155,6 +163,8 @@ def scan_asset_store_cache(
     candidates: dict[str, Candidate] = {}
     root_summaries: list[dict[str, object]] = []
     truncated = False
+    inspected = 0
+    bounded_inspections = max(1, min(int(max_inspect_items), 1000))
 
     for root in roots:
         if not root.path.is_dir():
@@ -197,6 +207,40 @@ def scan_asset_store_cache(
                 except (OSError, ValueError) as exc:
                     warnings.append(f"{root.kind}: {type(exc).__name__}")
                     continue
+                if inspect_packages and inspected < bounded_inspections:
+                    try:
+                        inspection = inspect_unitypackage(path)
+                    except UnityPackageInspectionError as exc:
+                        candidate = replace(
+                            candidate,
+                            metadata={
+                                **candidate.metadata,
+                                "package_inspection": {
+                                    "schema": "stackforge.unitypackage-inspection.v1",
+                                    "state": "error",
+                                    "error": str(exc)[:500],
+                                },
+                            },
+                        )
+                    else:
+                        candidate = replace(
+                            candidate,
+                            version=(
+                                str(inspection.summary.get("version") or "")
+                                or candidate.version
+                            ),
+                            platforms=tuple(
+                                str(value)
+                                for value in inspection.summary.get(
+                                    "platform_hints", []
+                                )
+                            ),
+                            metadata={
+                                **candidate.metadata,
+                                "package_inspection": inspection.summary,
+                            },
+                        )
+                    inspected += 1
                 package_count += 1
                 candidates.setdefault(candidate.id, candidate)
                 if len(candidates) >= bounded_items:
@@ -212,11 +256,17 @@ def scan_asset_store_cache(
         if truncated:
             break
 
+    if inspect_packages and len(candidates) > inspected:
+        warnings.append(
+            "package inspection limit reached; remaining archives were only inventoried"
+        )
+
     return CacheScanResult(
         candidates=tuple(sorted(candidates.values(), key=lambda item: item.title.casefold())),
         roots=tuple(root_summaries),
         warnings=tuple(dict.fromkeys(warnings))[:20],
         truncated=truncated,
+        inspected=inspected,
     )
 
 

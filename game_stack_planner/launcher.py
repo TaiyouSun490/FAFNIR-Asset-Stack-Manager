@@ -16,6 +16,7 @@ def run_local_ui(
     open_browser: bool = True,
 ) -> None:
     application = GameStackApplication(db_path)
+    application.enable_automatic_maintenance(sync_my_assets=db_path is None)
     server = create_server(application, port=port)
     actual_port = server.server_address[1]
     url = f"http://127.0.0.1:{actual_port}/"

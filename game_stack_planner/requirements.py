@@ -51,14 +51,14 @@ _CAPABILITIES: tuple[_Capability, ...] = (
     ),
     _Capability(
         "save_system", "セーブ",
-        "unity save system serialization",
-        ("save", "persistence", "progression", "セーブ", "保存", "進行", "育成"),
+        "unity save system serialization checkpoint",
+        ("save", "persistence", "progression", "checkpoint", "セーブ", "保存", "進行", "育成", "チェックポイント"),
         "進行状態と設定を安全に永続化します。",
     ),
     _Capability(
         "inventory", "インベントリ",
         "unity inventory item system",
-        ("inventory", "item", "loot", "equipment", "インベントリ", "アイテム", "装備", "収集"),
+        ("inventory", "item", "loot", "equipment", "インベントリ", "アイテム", "装備", "収集", "持ち物", "所持品"),
         "アイテム定義、所持、装備、保存を一貫させます。",
     ),
     _Capability(
@@ -69,8 +69,8 @@ _CAPABILITIES: tuple[_Capability, ...] = (
     ),
     _Capability(
         "enemy_ai", "敵AI・ナビゲーション",
-        "unity enemy ai behavior tree navigation",
-        ("enemy", "npc", "ai", "stealth", "敵", "エネミー", "ステルス"),
+        "unity enemy ai behavior tree navigation patrol chase roaming",
+        ("enemy", "npc", "ai", "stealth", "patrol", "chase", "敵", "エネミー", "ステルス", "徘徊", "追跡", "巡回"),
         "移動経路と意思決定を分けて実装します。",
     ),
     _Capability(
@@ -88,6 +88,7 @@ _CAPABILITIES: tuple[_Capability, ...] = (
         (
             "puzzle", "escape room", "escape game", "riddle", "clue",
             "keypad", "パズル", "脱出", "だしゅつ", "謎解き", "ギミック",
+            "暗証番号", "暗証", "番号錠", "コードロック",
         ),
         "手掛かり、条件判定、解除状態と再試行をデータとして管理します。",
     ),
@@ -105,9 +106,18 @@ _CAPABILITIES: tuple[_Capability, ...] = (
         "unity lighting volumetric flashlight post processing darkness",
         (
             "lighting", "light", "volumetric", "flashlight", "darkness",
-            "照明", "ライト", "懐中電灯", "暗闇", "ポストプロセス",
+            "照明", "ライト", "懐中電灯", "暗闇", "ポストプロセス", "非常灯", "非常照明",
         ),
         "可読性を保ちながら暗さ、霧、ライト、画面効果を統一します。",
+    ),
+    _Capability(
+        "water_environment", "水・水中環境",
+        "unity underwater ocean flooded environment water shader",
+        (
+            "underwater", "subsea", "ocean", "flooded", "water system",
+            "海底", "水中", "海中", "浸水", "水没", "海洋", "水面",
+        ),
+        "水面、水中視界、浸水表現とRender Pipeline互換性をまとめて確認します。",
     ),
     _Capability(
         "procedural_generation", "プロシージャル生成",
@@ -140,6 +150,12 @@ _CAPABILITIES: tuple[_Capability, ...] = (
         "BGM、効果音、ミキサー、音量設定を統合します。",
     ),
     _Capability(
+        "footstep_audio", "足音・サーフェス音",
+        "unity footsteps surface audio system foley",
+        ("footstep", "footsteps", "foley", "足音", "歩行音", "地面音"),
+        "床材や浸水状態に応じた足音の選択、間隔、音量を移動処理から分離します。",
+    ),
+    _Capability(
         "xr", "XR・VRインタラクション",
         "unity xr interaction toolkit vr",
         ("vr", "xr", "openxr", "quest", "virtual reality", "仮想現実", "掴む", "つかむ"),
@@ -169,7 +185,7 @@ _CAPABILITIES: tuple[_Capability, ...] = (
         (
             "environment", "environment art", "2d art", "3d art", "sprite",
             "city", "urban", "nature", "dungeon", "背景", "環境", "街", "都市",
-            "建物", "自然", "ダンジョン", "2d", "3d",
+            "建物", "自然", "ダンジョン", "研究施設", "研究所", "通路", "屋内", "海底", "2d", "3d",
         ),
         "舞台、背景、プロップ、スプライトなど制作量の大きい素材を整理します。",
     ),
@@ -178,7 +194,7 @@ _CAPABILITIES: tuple[_Capability, ...] = (
         "unity character creature model avatar art",
         (
             "character art", "character model", "creature", "monster", "avatar",
-            "キャラクター", "クリーチャー", "モンスター", "アバター",
+            "キャラクター", "クリーチャー", "モンスター", "アバター", "異形", "怪物", "化け物",
         ),
         "キャラクター、敵、衣装、クリーチャーの素材要件を整理します。",
     ),
@@ -235,8 +251,12 @@ _ARCHETYPE_EXPANSIONS: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
         ("dialogue_quest", "localization"),
     ),
     (
-        ("fps", "tps", "third person", "first person", "三人称", "一人称"),
+        ("fps", "tps", "shooter", "シューティング"),
         ("character_controller", "camera", "combat"),
+    ),
+    (
+        ("third person", "first person", "三人称", "一人称"),
+        ("character_controller", "camera"),
     ),
     (
         ("escape room", "escape game", "脱出", "だしゅつ", "謎解き"),
@@ -270,7 +290,7 @@ def derive_requirements(
     prompt: str,
     *,
     platform: str = "pc",
-    maximum: int = 14,
+    maximum: int = 16,
 ) -> tuple[GameRequirement, ...]:
     """Return a bounded, explainable requirement list."""
 

@@ -13,6 +13,15 @@ from .launcher import run_local_ui
 
 
 def _print(value: Any, *, as_json: bool) -> None:
+    # Windows PowerShell can still expose a legacy cp932 stdout even when the
+    # payload is valid UTF-8 JSON.  Stackforge responses contain publisher text
+    # and punctuation outside that code page, so make the CLI contract UTF-8.
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if callable(reconfigure):
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError, ValueError):
+            pass
     if as_json or isinstance(value, (dict, list)):
         print(json.dumps(value, ensure_ascii=False, indent=2))
     else:
@@ -51,6 +60,11 @@ def build_parser() -> argparse.ArgumentParser:
     cache_scan.add_argument(
         "--path",
         help="Use an explicit Asset Store-5.x cache directory.",
+    )
+    cache_scan.add_argument(
+        "--inspect",
+        action="store_true",
+        help="Inspect archive manifests/content types without extracting files.",
     )
 
     my_assets = subparsers.add_parser(
@@ -119,6 +133,59 @@ def build_parser() -> argparse.ArgumentParser:
     rag_search.add_argument("--query", required=True)
     rag_search.add_argument("--limit", type=int, default=20)
 
+    subparsers.add_parser(
+        "rag-status",
+        help="Inspect the active model generation, progress, and index coverage.",
+    )
+
+    rag_index = subparsers.add_parser(
+        "rag-index",
+        help="Build local dense embeddings for owned-asset RAG documents.",
+    )
+    rag_index.add_argument("--force", action="store_true")
+    rag_index.add_argument("--batch-size", type=int, default=32)
+
+    subparsers.add_parser(
+        "asset-details-status",
+        help="Inspect public Asset Store product metadata coverage and queue state.",
+    )
+
+    asset_details = subparsers.add_parser(
+        "asset-details-sync",
+        help="Resume a rate-limited sync of official public product metadata.",
+    )
+    asset_details.add_argument("--force", action="store_true")
+    asset_details.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Maximum products this run; 0 processes every due product.",
+    )
+    asset_details.add_argument("--delay", type=float, default=1.5)
+    asset_details.add_argument(
+        "--reindex",
+        action="store_true",
+        help="Refresh owned-asset embeddings after metadata changes.",
+    )
+
+    validate_asset = subparsers.add_parser(
+        "validate-asset",
+        help="Inspect a cached Asset Store package against a Unity project.",
+    )
+    validate_asset.add_argument("candidate_id")
+    validate_asset.add_argument("--project", required=True)
+    validate_asset.add_argument(
+        "--platform",
+        choices=("pc", "mobile", "webgl", "vr", "quest"),
+        default="pc",
+    )
+    validate_asset.add_argument("--cache-path")
+    validate_asset.add_argument(
+        "--compile",
+        action="store_true",
+        help="Import into a temporary project with the matching Editor and compile.",
+    )
+
     install_plan = subparsers.add_parser(
         "install-plan",
         help="Prepare a read-only, approval-gated install plan for one candidate ID.",
@@ -175,7 +242,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "scan":
             result = app.scan({"path": args.project})
         elif args.command == "scan-cache":
-            result = app.scan_cache({"path": args.path or ""})
+            result = app.scan_cache({
+                "path": args.path or "",
+                "inspect": bool(args.inspect),
+            })
         elif args.command == "sync-my-assets":
             result = app.sync_unity_my_assets({"path": args.path or ""})
         elif args.command == "recommend":
@@ -207,6 +277,41 @@ def main(argv: Sequence[str] | None = None) -> int:
                 query=args.query,
                 limit=args.limit,
             )
+        elif args.command == "rag-status":
+            result = app.status()["rag_index"]
+        elif args.command == "rag-index":
+            result = app.reindex_asset_rag(
+                force=args.force,
+                batch_size=args.batch_size,
+            )
+        elif args.command == "asset-details-status":
+            result = app.status()["asset_store_details"]
+        elif args.command == "asset-details-sync":
+            result = app.sync_asset_store_details(
+                force=args.force,
+                limit=args.limit,
+                delay_seconds=args.delay,
+            )
+            if args.reindex and result["completed"]:
+                try:
+                    result["rag_index"] = app.reindex_asset_rag(
+                        force=False,
+                        batch_size=32,
+                    )
+                except ApiError as exc:
+                    result["rag_index"] = {
+                        "state": "deferred",
+                        "code": exc.code,
+                        "message": str(exc),
+                    }
+        elif args.command == "validate-asset":
+            result = app.validate_asset_candidate({
+                "candidate_id": args.candidate_id,
+                "project_path": args.project,
+                "platform": args.platform,
+                "cache_path": args.cache_path or "",
+                "compile": bool(args.compile),
+            })
         elif args.command == "install-plan":
             result = app.prepare_install({
                 "candidate_id": args.candidate_id,

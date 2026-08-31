@@ -10,8 +10,10 @@ page content, images, package files, or asset contents.
    directory's `package.json`.
 2. Sign in to Unity Hub / Unity Editor.
 3. Open **Tools > Stackforge > My Assets Sync**.
-4. Click **My Assetsを同期**.
-5. In the Stackforge Catalog, click **所有アセットを同期**.
+4. Leave the default periodic sync enabled (6 hours), or change the visible
+   interval. Click **My Assetsを同期** when a new purchase must appear immediately.
+5. Stackforge imports a changed export during the current or next UI/MCP run;
+   no second Catalog sync is normally required.
 
 The package uses a runtime reflection adapter over Unity's undocumented
 internal Package Manager service. If Unity changes that service, Stackforge

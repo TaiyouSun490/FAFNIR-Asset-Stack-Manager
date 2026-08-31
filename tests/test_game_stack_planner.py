@@ -121,6 +121,30 @@ class RequirementTests(unittest.TestCase):
         self.assertIn("xr", keys)
         self.assertIn("input", keys)
 
+    def test_underwater_horror_brief_keeps_specific_gameplay_requirements(self):
+        values = derive_requirements(
+            "閉鎖された海底研究施設の一人称ホラー。浸水した通路、非常灯、"
+            "徘徊する異形、足音の変化、鍵と暗証番号、持ち物管理、"
+            "チェックポイント保存が必要。"
+        )
+        keys = {item.key for item in values}
+        self.assertTrue({
+            "character_controller",
+            "camera",
+            "save_system",
+            "inventory",
+            "enemy_ai",
+            "interaction",
+            "puzzle",
+            "horror_atmosphere",
+            "lighting",
+            "water_environment",
+            "footstep_audio",
+            "visual_assets",
+            "character_art",
+        }.issubset(keys))
+        self.assertNotIn("combat", keys)
+
 
 class ProjectTests(unittest.TestCase):
     def test_scan_detects_unity_configuration(self):
@@ -209,7 +233,7 @@ class RepositoryAndServiceTests(unittest.TestCase):
             )
             self.assertEqual(len(result["plans"]), 3)
             self.assertTrue(result["recommendations"]["networking"])
-            self.assertFalse(result["policy"]["asset_store_automated_fetch"])
+            self.assertTrue(result["policy"]["asset_store_automated_fetch"])
             self.assertTrue(all(
                 item["url"].startswith("https://assetstore.unity.com/?")
                 for item in result["asset_store_searches"]

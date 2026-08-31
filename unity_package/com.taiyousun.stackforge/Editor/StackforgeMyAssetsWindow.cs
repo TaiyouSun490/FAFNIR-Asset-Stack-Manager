@@ -43,6 +43,26 @@ namespace Stackforge.Editor
             EditorGUILayout.LabelField("出力先", StackforgeMyAssetsSync.exportPath);
             EditorGUILayout.Space();
 
+            bool automatic = EditorGUILayout.ToggleLeft(
+                "Unity起動中にMy Assetsを定期同期",
+                StackforgeMyAssetsSync.automaticSyncEnabled);
+            if (automatic != StackforgeMyAssetsSync.automaticSyncEnabled)
+                StackforgeMyAssetsSync.automaticSyncEnabled = automatic;
+            using (new EditorGUI.DisabledScope(!automatic))
+            {
+                int interval = EditorGUILayout.IntSlider(
+                    "同期間隔（時間）",
+                    StackforgeMyAssetsSync.automaticSyncIntervalHours,
+                    1,
+                    168);
+                if (interval != StackforgeMyAssetsSync.automaticSyncIntervalHours)
+                    StackforgeMyAssetsSync.automaticSyncIntervalHours = interval;
+            }
+            EditorGUILayout.HelpBox(
+                "新しい購入を反映するため、既定では6時間ごとに差分ファイルを更新します。今すぐ反映する場合は下の同期ボタンを使ってください。",
+                MessageType.None);
+            EditorGUILayout.Space();
+
             using (new EditorGUI.DisabledScope(StackforgeMyAssetsSync.isRunning))
             {
                 if (GUILayout.Button("My Assetsを同期", GUILayout.Height(34)))
@@ -60,17 +80,34 @@ namespace Stackforge.Editor
         }
     }
 
+    [InitializeOnLoad]
     internal static class StackforgeMyAssetsSync
     {
         private const string InternalNamespace = "UnityEditor.PackageManager.UI.Internal";
         private const int PageSize = 500;
         private const int MaxAssets = 20000;
+        private const string AutoSyncKey = "Stackforge.MyAssets.AutoSync";
+        private const string AutoSyncHoursKey = "Stackforge.MyAssets.AutoSyncHours";
+        private const string AutoSyncAttemptKey = "Stackforge.MyAssets.AutoSyncAttemptUtc";
+        private static double _nextAutomaticCheck;
 
         internal static event Action changed = delegate { };
         internal static bool isRunning { get; private set; }
         internal static string status { get; private set; } = "同期待ちです。";
         internal static MessageType messageType { get; private set; } = MessageType.None;
         internal static int lastCount { get; private set; } = -1;
+
+        internal static bool automaticSyncEnabled
+        {
+            get { return EditorPrefs.GetBool(AutoSyncKey, true); }
+            set { EditorPrefs.SetBool(AutoSyncKey, value); }
+        }
+
+        internal static int automaticSyncIntervalHours
+        {
+            get { return Mathf.Clamp(EditorPrefs.GetInt(AutoSyncHoursKey, 6), 1, 168); }
+            set { EditorPrefs.SetInt(AutoSyncHoursKey, Mathf.Clamp(value, 1, 168)); }
+        }
 
         internal static string exportPath
         {
@@ -92,6 +129,41 @@ namespace Stackforge.Editor
         private static int _offset;
         private static bool _hiddenPass;
         private static bool _hiddenAssetsSkipped;
+
+        static StackforgeMyAssetsSync()
+        {
+            _nextAutomaticCheck = EditorApplication.timeSinceStartup + 15.0;
+            EditorApplication.update += CheckAutomaticSync;
+        }
+
+        private static void CheckAutomaticSync()
+        {
+            if (EditorApplication.timeSinceStartup < _nextAutomaticCheck)
+                return;
+            _nextAutomaticCheck = EditorApplication.timeSinceStartup + 300.0;
+            if (!automaticSyncEnabled || isRunning || EditorApplication.isCompiling
+                || EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            DateTime now = DateTime.UtcNow;
+            TimeSpan interval = TimeSpan.FromHours(automaticSyncIntervalHours);
+            DateTime lastAttempt;
+            string rawAttempt = EditorPrefs.GetString(AutoSyncAttemptKey, string.Empty);
+            if (DateTime.TryParse(
+                    rawAttempt,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out lastAttempt)
+                && now - lastAttempt.ToUniversalTime() < interval)
+                return;
+            if (File.Exists(exportPath) && now - File.GetLastWriteTimeUtc(exportPath) < interval)
+                return;
+
+            EditorPrefs.SetString(
+                AutoSyncAttemptKey,
+                now.ToString("O", CultureInfo.InvariantCulture));
+            Start();
+        }
 
         internal static void Start()
         {
@@ -334,7 +406,7 @@ namespace Stackforge.Editor
             lastCount = Records.Count;
             status = _hiddenAssetsSkipped
                 ? "通常のMy Assetsを書き出しました。このUnity版では非表示商品の取得に対応していません。"
-                : "同期ファイルを書き出しました。Stackforgeで「所有アセットを同期」を押してください。";
+                : "同期ファイルを書き出しました。Stackforgeの起動中または次回起動時に自動で取り込まれます。";
             messageType = _hiddenAssetsSkipped ? MessageType.Warning : MessageType.Info;
             Notify();
         }

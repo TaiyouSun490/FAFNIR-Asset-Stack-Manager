@@ -12,6 +12,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 from .asset_store_cache import CacheScanResult, scan_asset_store_cache
+from .compatibility import assess_candidate_compatibility
 from .models import Candidate, GameRequirement, ProjectSnapshot
 from .repository import StackRepository
 from .requirements import derive_requirements
@@ -35,8 +36,9 @@ _RECOMMENDATION_SCOPE_LIMITS = {
 }
 
 _GENERIC_MATCH_TOKENS = {
-    "adaptive", "asset", "assets", "controller", "framework", "game", "kit",
-    "manager", "package", "room", "system", "tool", "toolkit", "unity",
+    "adaptive", "asset", "assets", "audio", "code", "controller", "environment",
+    "framework", "game", "kit", "logic", "manager", "package", "room", "system",
+    "tool", "toolkit", "unity",
 }
 
 
@@ -63,12 +65,59 @@ def _age_days(value: str | None) -> int | None:
     return max(0, (datetime.now(timezone.utc) - parsed).days)
 
 
+def _rag_query_for_requirement(requirement: GameRequirement, prompt: str) -> str:
+    """Add only requirement-relevant scene context to the retrieval query."""
+    normalized = _normalized(prompt)
+    context: list[str] = []
+
+    def includes(*terms: str) -> bool:
+        return any(_normalized(term) in normalized for term in terms)
+
+    if requirement.key in {
+        "horror_atmosphere", "lighting", "water_environment", "visual_assets",
+    }:
+        if includes("海底", "海中", "水中", "subsea", "underwater"):
+            context.extend(("underwater", "subsea", "ocean"))
+        if includes("研究施設", "研究所", "laboratory", "research facility"):
+            context.extend(("research", "laboratory", "facility"))
+        if includes("通路", "廊下", "corridor", "hallway"):
+            context.extend(("interior", "corridor", "hallway"))
+        if includes("浸水", "水没", "flooded", "submerged"):
+            context.extend(("flooded", "submerged"))
+    if requirement.key in {"lighting", "horror_atmosphere"} and includes(
+        "非常灯", "非常照明", "emergency light"
+    ):
+        context.extend(("emergency", "warning", "light"))
+    if requirement.key in {"enemy_ai", "character_art"} and includes(
+        "異形", "怪物", "化け物", "creature", "monster", "mutant"
+    ):
+        context.extend(("creature", "monster", "mutant"))
+    if requirement.key in {"audio", "footstep_audio"} and includes(
+        "足音", "歩行音", "footstep", "footsteps"
+    ):
+        context.extend(("footsteps", "surface", "foley", "wet"))
+    if requirement.key in {"interaction", "puzzle"} and includes(
+        "暗証番号", "暗証", "番号錠", "keypad", "combination lock"
+    ):
+        context.extend(("keypad", "combination", "code", "lock"))
+
+    if not context:
+        return requirement.query
+    base = requirement.query
+    if requirement.key == "visual_assets":
+        base = "unity environment art models modular props"
+    elif requirement.key == "audio":
+        base = "unity horror ambient audio"
+    return " ".join((base, *dict.fromkeys(context)))
+
+
 def _candidate_score(
     requirement: GameRequirement,
     candidate: Candidate,
     *,
     project: ProjectSnapshot | None,
     platform: str,
+    rag_match: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     reasons: list[str] = []
     risks: list[str] = []
@@ -96,7 +145,10 @@ def _candidate_score(
     if remote_candidate and not identity_overlap and len(description_overlap) < 2:
         overlap = set()
     if overlap:
-        score += min(30.0, len(overlap) * 12.0)
+        score += min(
+            32.0,
+            len(identity_overlap) * 22.0 + len(description_overlap) * 4.0,
+        )
         reasons.append("検索語一致: " + ", ".join(sorted(overlap)[:4]))
 
     # Ownership is useful only after relevance is established. Without this
@@ -116,7 +168,53 @@ def _candidate_score(
         if candidate_payload["ownership"] == "installed":
             candidate_payload["ownership"] = "unknown"
 
-    if not category_match and not overlap:
+    compatibility = assess_candidate_compatibility(
+        candidate,
+        project=project,
+        platform=platform,
+    )
+    candidate_payload["compatibility"] = compatibility
+    if compatibility["status"] == "incompatible":
+        return {
+            "candidate": candidate_payload,
+            "score": 0.0,
+            "reasons": [],
+            "risks": list(compatibility["reasons"])[:5],
+            "installed_in_project": installed_in_project,
+        }
+
+    if rag_match is not None:
+        rank = max(0, int(rag_match.get("rank") or 0))
+        dense_score = rag_match.get("score")
+        mode = str(rag_match.get("retrieval_mode") or "")
+        if isinstance(dense_score, (int, float)):
+            score += min(48.0, 34.0 + max(0.0, float(dense_score) - 0.65) * 45.0)
+            reasons.append(f"所有アセットRAG意味一致 {float(dense_score):.2f}")
+        else:
+            lexical_score = float(rag_match.get("rank_score") or 0.0)
+            score += min(26.0, 12.0 + lexical_score)
+            reasons.append("所有アセット文字列索引で関連候補")
+        candidate_payload["retrieval"] = {
+            "mode": mode,
+            "score": dense_score,
+            "rank": rank + 1,
+        }
+
+    fallback_rag = (
+        rag_match is not None
+        and str(rag_match.get("retrieval_mode") or "") == "lexical_fallback"
+    )
+    fallback_relevant = (
+        category_match or bool(identity_overlap) or len(description_overlap) >= 2
+    )
+    if (
+        not category_match
+        and not overlap
+        and (
+            rag_match is None
+            or fallback_rag
+        )
+    ) or (fallback_rag and not fallback_relevant):
         return {
             "candidate": candidate_payload,
             "score": 0.0,
@@ -172,7 +270,22 @@ def _candidate_score(
         score -= 40
         risks.append("リポジトリがアーカイブ済み")
 
-    if project is not None and candidate.render_pipeline:
+    if compatibility["status"] == "compatible":
+        score += 8
+        reasons.extend(list(compatibility["reasons"])[:1])
+        risks.extend(list(compatibility.get("local_warnings") or [])[:2])
+    elif (
+        project is not None
+        and candidate.source == "asset_store"
+        and compatibility["status"] == "unknown"
+    ):
+        risks.extend(list(compatibility["reasons"])[:1])
+
+    if (
+        candidate.source != "asset_store"
+        and project is not None
+        and candidate.render_pipeline
+    ):
         pipeline = candidate.render_pipeline.casefold()
         if pipeline not in {"any", "all", project.render_pipeline.casefold()}:
             score -= 25
@@ -185,6 +298,12 @@ def _candidate_score(
         if platform.casefold() not in supported and "all" not in supported:
             score -= 20
             risks.append(f"{platform}対応を確認")
+
+    details = candidate.metadata.get("asset_store_details")
+    if isinstance(details, dict):
+        dependencies = details.get("dependencies")
+        if isinstance(dependencies, list) and dependencies:
+            risks.append(f"依存Asset Store商品 {len(dependencies)}件を確認")
 
     return {
         "candidate": candidate_payload,
@@ -299,9 +418,15 @@ class GameStackPlanner:
     def scan_asset_store_cache(
         self,
         path: str | None = None,
+        *,
+        inspect_packages: bool = False,
     ) -> CacheScanResult:
-        result = scan_asset_store_cache(path)
+        result = scan_asset_store_cache(
+            path,
+            inspect_packages=bool(inspect_packages),
+        )
         self.repository.upsert_candidates(result.candidates)
+        self.repository.link_asset_store_cache_candidates()
         return result
 
     @staticmethod
@@ -409,10 +534,63 @@ class GameStackPlanner:
             str,
             dict[str, list[dict[str, Any]]],
         ] = {}
+        # Compatibility, project state, product state, and explicit platform
+        # support are hard filters before any vector/lexical RAG scoring.  This
+        # keeps semantically similar but unusable owned assets out of retrieval.
+        eligible_owned_ids = {
+            candidate.id
+            for candidate in catalog
+            if not candidate.archived
+            and candidate.source == "asset_store"
+            and candidate.ownership in {"owned", "installed"}
+            and assess_candidate_compatibility(
+                candidate,
+                project=project,
+                platform=platform,
+            )["status"] != "incompatible"
+        }
+        rag_matches: dict[str, dict[str, dict[str, Any]]] = {}
+        rag_modes: set[str] = set()
+        rag_error = ""
+        for requirement in requirements:
+            try:
+                retrieval = self.repository.search_asset_rag(
+                    query=_rag_query_for_requirement(requirement, normalized_prompt),
+                    limit=40,
+                    candidate_ids=eligible_owned_ids,
+                    category_hints=(requirement.key,),
+                )
+                mode = str(retrieval.get("retrieval_mode") or "unknown")
+                rag_modes.add(mode)
+                rag_matches[requirement.key] = {
+                    str(item["candidate_id"]): {
+                        **item,
+                        "rank": index,
+                        "retrieval_mode": mode,
+                    }
+                    for index, item in enumerate(retrieval.get("items") or [])
+                    if isinstance(item, dict) and item.get("candidate_id")
+                }
+            except (RuntimeError, ValueError) as exc:
+                rag_error = str(exc)[:500]
+                rag_matches[requirement.key] = {}
+        source_status["owned_asset_rag"] = {
+            "status": "error" if rag_error else "+".join(sorted(rag_modes)) or "empty",
+            "count": sum(len(value) for value in rag_matches.values()),
+            "eligible": len(eligible_owned_ids),
+            "structured_prefilter": True,
+        }
+        if rag_error:
+            source_status["owned_asset_rag"]["error"] = rag_error
+
         for requirement in requirements:
             scored = [
                 _candidate_score(
-                    requirement, candidate, project=project, platform=platform
+                    requirement,
+                    candidate,
+                    project=project,
+                    platform=platform,
+                    rag_match=rag_matches.get(requirement.key, {}).get(candidate.id),
                 )
                 for candidate in catalog
                 if not candidate.archived
@@ -476,8 +654,10 @@ class GameStackPlanner:
             ],
             "source_status": source_status,
             "policy": {
-                "asset_store_access": "official_search_links_and_manual_pins",
-                "asset_store_automated_fetch": False,
+                "asset_store_access": (
+                    "official_search_links_manual_pins_and_public_product_metadata"
+                ),
+                "asset_store_automated_fetch": True,
                 "asset_store_local_cache_scan": True,
                 "github_api": True,
                 "openupm_registry": True,

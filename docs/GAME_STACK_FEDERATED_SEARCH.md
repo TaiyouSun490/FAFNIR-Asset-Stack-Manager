@@ -6,11 +6,10 @@ Stackforgeの検索価値は、同じゲーム機能に対して次の3レーン
 2. **購入未確認候補** — 公式Asset Store検索からユーザーが保存した商品
 3. **GitHub / OpenUPM** — 公開GitリポジトリとUPMパッケージ
 
-「購入未確認」は「未購入」と同義ではありません。StackforgeはAsset Storeアカウントの全所有台帳を自動取得しないため、確認できない商品を未購入と断定しません。
+「購入未確認」は「未購入」と同義ではありません。Unity Editorブリッジが取得したMy Assetsだけを所有確認済みとし、それ以外の商品を未購入とは断定しません。
 
 ## 所有・利用可能性の状態
 
-- `confirmed_owned`: ユーザーが所有済みとして明示した商品。現段階の証拠表示は「自己申告」です。
 - `locally_cached`: このPCの `Asset Store-5.x` に `.unitypackage` がある商品。ダウンロード済みですが、現在のアカウントの全My Assetsや購入証明とは限りません。
 - `confirmed_owned`: Unity Editorブリッジがログイン中のMy Assets応答で確認した商品、またはユーザーが明示的に自己申告した商品。両者は `ownership_evidence.kind` で区別します。
 - `project_present`: 指定Unityプロジェクトの依存関係で確認したパッケージ。
@@ -23,8 +22,8 @@ Stackforgeの検索価値は、同じゲーム機能に対して次の3レーン
 GUIのCatalogから「ローカルキャッシュを取込」を実行するか、CLIを使います。
 
 ```powershell
-game-stack scan-cache
-game-stack scan-cache --path "D:\UnityCache\Asset Store-5.x"
+game-stack scan-cache --inspect
+game-stack scan-cache --path "D:\UnityCache\Asset Store-5.x" --inspect
 game-stack catalog --scope owned_assets --query inventory
 ```
 
@@ -33,7 +32,10 @@ game-stack catalog --scope owned_assets --query inventory
 - `ASSETSTORE_CACHE_PATH` で設定された場所
 - `%APPDATA%\Unity\Asset Store-5.x`
 
-走査対象は `.unitypackage` のファイル名・相対フォルダー・サイズ・更新時刻だけです。アーカイブを展開・実行・全文hashせず、シンボリックリンクやreparse pointも辿りません。絶対キャッシュパスはAPIレスポンスへ返しません。
+通常走査は `.unitypackage` のファイル名・相対フォルダー・サイズ・更新時刻を確認します。
+`--inspect`（UIでは既定オン）は、アーカイブをディスクへ展開・実行せず、論理パス、GUID、
+スクリプト、asmdef、埋め込み`package.json`、Render Pipeline/Input参照、ネイティブプラグインを
+安全上限内で読み取ります。絶対キャッシュパス、ソース本文、バイナリ内容はAPI/MCP応答へ返しません。
 
 ## Asset Store専用Chrome拡張
 
@@ -49,6 +51,14 @@ Native hostはChrome拡張originを1つだけ許可し、URL・message schema・
 
 ## Asset Storeアクセス方針
 
-未所持候補のAsset Store検索は公式検索リンクを開き、ユーザーが選択したURLだけを保存します。Webページの自動巡回や検索結果スクレイピングはしません。所有一覧は別経路として、ログイン済みUnity EditorのPackage ManagerサービスをEditorブリッジがページングし、最小メタデータだけをローカルへ書き出します。GitHubとOpenUPMはそれぞれの公開検索APIを本体が利用します。
+未所持候補のAsset Store検索は公式検索リンクを開き、ユーザーが選択したURLだけを保存します。
+検索結果一覧は巡回しません。保存済み商品とMy Assetsの商品IDについては、Unity公式sitemapで
+正規商品URLを解決し、公開商品ページから説明、出版社、カテゴリ、版、Unity/Render Pipeline
+互換性、依存、価格、集計評価を差分取得します。認証、Cookie、画像、レビュー本文は取得しません。
+取得ジョブはSQLiteへ永続化され、低速回線でも再開でき、既定30日で更新対象になります。
+
+所有一覧は別経路として、ログイン済みUnity EditorのPackage ManagerサービスをEditorブリッジが
+ページングし、最小メタデータだけをローカルへ書き出します。GitHubとOpenUPMはそれぞれの
+公開検索APIを本体が利用します。
 
 Unityの現行条件は変更される可能性があるため、運用時は [Unity Asset Store Terms](https://unity.com/legal/as-terms) を確認してください。

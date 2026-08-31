@@ -202,6 +202,19 @@ class PlannerHandler(BaseHTTPRequestHandler):
                 result = self.app.scan_cache(payload)
             elif route == "/api/asset-store/my-assets/sync":
                 result = self.app.sync_unity_my_assets(payload)
+            elif route == "/api/asset-store/details/refresh":
+                unknown = sorted(key for key in payload if key != "force")
+                if unknown or not isinstance(payload.get("force", False), bool):
+                    raise ApiError(
+                        400,
+                        "invalid_request",
+                        "Only a boolean force field is supported.",
+                    )
+                result = self.app.request_asset_store_detail_sync(
+                    force=bool(payload.get("force", False))
+                )
+            elif route == "/api/asset-store/validate":
+                result = self.app.validate_asset_candidate(payload)
             elif route == "/api/recommend":
                 result = self.app.recommend(payload)
             elif route == "/api/catalog/manual":

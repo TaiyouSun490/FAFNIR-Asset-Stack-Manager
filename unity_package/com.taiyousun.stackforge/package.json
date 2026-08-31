@@ -1,8 +1,8 @@
 {
   "name": "com.taiyousun.stackforge",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "displayName": "Stackforge My Assets Bridge",
-  "description": "Exports the current Unity Editor account's minimal My Assets metadata for local Stackforge search.",
+  "description": "Differentially exports the current Unity Editor account's minimal My Assets metadata for local Stackforge search.",
   "unity": "2022.3",
   "author": {
     "name": "Taiyou_Sun"
