@@ -40,23 +40,58 @@ a { color: inherit; }
 .shell { min-height: 100vh; }
 
 .topbar {
-  height: 64px;
+  height: 76px;
   padding: 0 clamp(18px, 3vw, 48px);
   display: flex;
   align-items: center;
   gap: 28px;
   border-bottom: 1px solid var(--line);
-  background: rgba(10, 12, 15, .9);
+  background:
+    linear-gradient(90deg, rgba(255, 107, 61, .055), transparent 34%),
+    rgba(10, 12, 15, .93);
   backdrop-filter: blur(18px);
   position: sticky;
   top: 0;
   z-index: 20;
 }
-.topbar::after { content: ""; position: absolute; left: 0; bottom: -1px; width: 84px; height: 1px; background: var(--accent); }
-.brand { color: inherit; display: flex; align-items: center; text-decoration: none; }
-.brand-wordmark { display: block; padding-left: 12px; border-left: 3px solid var(--accent); }
-.brand-wordmark strong { display: block; font: 800 17px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .2em; }
-.brand-wordmark small { display: block; margin-top: 6px; color: var(--dim); font: 8px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .14em; }
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: min(34vw, 430px);
+  opacity: .18;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8px 21px, transparent 6px, rgba(255, 107, 61, .16) 6.5px, transparent 7.5px) 0 0 / 32px 38px,
+    radial-gradient(circle at 24px 2px, transparent 6px, rgba(255, 107, 61, .1) 6.5px, transparent 7.5px) 0 0 / 32px 38px;
+  mask-image: linear-gradient(90deg, #000, transparent);
+}
+.topbar::after { content: ""; position: absolute; left: 0; bottom: -1px; width: min(36vw, 460px); height: 2px; background: linear-gradient(90deg, var(--accent) 0 24%, rgba(255,107,61,.28) 24% 68%, transparent); }
+.brand { position: relative; z-index: 1; color: inherit; display: flex; align-items: center; gap: 14px; min-width: 268px; text-decoration: none; }
+.brand-emblem {
+  position: relative;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  background: linear-gradient(145deg, rgba(255,107,61,.16), rgba(255,107,61,.025));
+  clip-path: polygon(0 0, 82% 0, 100% 18%, 100% 100%, 18% 100%, 0 82%);
+  box-shadow: inset 0 0 0 4px rgba(10,12,15,.85);
+}
+.brand-emblem::before,
+.brand-emblem::after { content: ""; position: absolute; pointer-events: none; }
+.brand-emblem::before { inset: 5px; border-top: 1px solid rgba(255,154,120,.55); border-left: 1px solid rgba(255,154,120,.3); }
+.brand-emblem::after { width: 6px; height: 6px; right: 6px; bottom: 6px; background: var(--accent); box-shadow: -27px -27px 0 rgba(255,154,120,.5); }
+.brand-emblem b { font: 900 21px/1 "Bahnschrift SemiCondensed", "Arial Narrow", sans-serif; transform: skewX(-7deg); }
+.brand-emblem i { position: absolute; width: 17px; height: 2px; left: 13px; bottom: 9px; background: var(--accent); transform: skewX(-20deg); }
+.brand-lockup { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 9px; }
+.brand-overline { grid-column: 1 / -1; margin-bottom: 4px; color: var(--accent-soft); font: 700 7px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .19em; }
+.brand-lockup strong { font: 800 19px/.9 "Bahnschrift SemiCondensed", "Arial Narrow", sans-serif; letter-spacing: .22em; }
+.brand-lockup strong em { color: var(--accent); font-style: normal; }
+.brand-lockup small { color: var(--dim); font: 700 7px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .12em; white-space: nowrap; }
 .tabs { height: 100%; display: flex; margin-left: auto; }
 .tab {
   position: relative;
@@ -115,7 +150,7 @@ h1 em { color: var(--ink); font-style: normal; font-weight: 350; }
   gap: 18px;
 }
 .panel { border: 1px solid var(--line); background: rgba(19, 23, 28, .94); box-shadow: var(--shadow); }
-.brief { padding: 24px; position: sticky; top: 82px; }
+.brief { padding: 24px; position: sticky; top: 94px; }
 .panel-heading { display: flex; gap: 13px; margin-bottom: 22px; }
 .step { width: 32px; height: 32px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid var(--line-hot); color: var(--accent); background: var(--surface-hot); font: 700 10px/1 "Cascadia Mono", Consolas, monospace; }
 h2, h3, p { margin-top: 0; }
@@ -224,7 +259,7 @@ textarea:focus, input:focus, select:focus { border-color: var(--accent); box-sha
 .catalog-header h1 { font-size: clamp(30px, 3.4vw, 45px); }
 .catalog-header > div > p:last-child { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
 .catalog-layout { max-width: 1480px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 62px) 80px; display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
-.filters { padding: 17px; position: sticky; top: 80px; max-height: calc(100vh - 96px); overflow: auto; box-shadow: none; }
+.filters { padding: 17px; position: sticky; top: 92px; max-height: calc(100vh - 108px); overflow: auto; box-shadow: none; }
 .filters > label:first-of-type { margin-top: 16px; }
 .filters .button { width: 100%; margin-top: 13px; }
 .rag-summary { padding: 2px 0 16px; border-bottom: 1px solid var(--line); }
@@ -330,9 +365,13 @@ dialog form { padding: 25px; }
 }
 @media (max-width: 760px) {
   .topbar { gap: 8px; padding: 0 13px; }
-  .brand-wordmark { padding-left: 8px; }
-  .brand-wordmark strong { font-size: 13px; }
-  .brand-wordmark small { display: none; }
+  .brand { min-width: 0; gap: 9px; }
+  .brand-emblem { width: 35px; height: 35px; }
+  .brand-emblem b { font-size: 17px; }
+  .brand-emblem i { left: 10px; bottom: 7px; }
+  .brand-lockup { display: block; }
+  .brand-overline, .brand-lockup small { display: none; }
+  .brand-lockup strong { font-size: 14px; }
   .health span { display: none; }
   .tab { min-width: 0; padding: 0 10px; }
   .hero { padding-top: 30px; }
