@@ -13,22 +13,13 @@
 
 | Variant | File | Use |
 | --- | --- | --- |
-| Rune Vault | `fafnir-logo-rune.svg` | 推奨。アプリヘッダ、README、配布物 |
-| Flat Geometry | `fafnir-logo-flat.svg` | 企業向け資料、明快さを優先する場面 |
-| Rune mark | `fafnir-mark.svg` | favicon、正方形アイコン、小サイズ |
+| Text wordmark | HTML/CSS | 現在のアプリヘッダ。正式な図形ロゴ決定までの安全な既定値 |
+| Flat Geometry | `fafnir-logo-flat.svg` | 比較用候補。正式採用ではない |
 
-ブラウザで `/brand.html` を開くと採用可能な2案を同じ条件で比較できます。
+ブラウザで `/brand.html` を開くと残っている図形候補を確認できます。
 
-グラフィティと2Dカートゥーンは、SVGラフおよび画像生成案を不採用としました。
+Rune Vault、グラフィティ、2Dカートゥーンは不採用としました。
 完成案として扱わず、必要になった場合は専用のアートディレクションと作画工程を別途設けます。
-
-## Rune Vault concept
-
-推奨案は次の3要素を一つの印章へ統合しています。
-
-- `F`：Fafnirの頭文字
-- 右向きの竜：所有アセットを守り、必要な候補を探す役割
-- 八角形の外枠：ローカルの宝物庫と、承認境界のある安全な処理
 
 ## Palette
 
@@ -38,5 +29,4 @@
 - Vault: `#11151a`
 - Canvas: `#0a0c0f`
 
-ロゴの周囲には、印章の高さの4分の1以上の余白を確保します。横長lockupが読めない
-サイズでは文字を縮小せず、`fafnir-mark.svg`へ切り替えます。
+図形ロゴが決定するまでは、ヘッダの文字組みを正式表示として使用します。

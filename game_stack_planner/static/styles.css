@@ -54,7 +54,9 @@ a { color: inherit; }
 }
 .topbar::after { content: ""; position: absolute; left: 0; bottom: -1px; width: 84px; height: 1px; background: var(--accent); }
 .brand { color: inherit; display: flex; align-items: center; text-decoration: none; }
-.brand-logo { display: block; width: 196px; height: 50px; object-fit: contain; object-position: left center; }
+.brand-wordmark { display: block; padding-left: 12px; border-left: 3px solid var(--accent); }
+.brand-wordmark strong { display: block; font: 800 17px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .2em; }
+.brand-wordmark small { display: block; margin-top: 6px; color: var(--dim); font: 8px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .14em; }
 .tabs { height: 100%; display: flex; margin-left: auto; }
 .tab {
   position: relative;
@@ -328,7 +330,9 @@ dialog form { padding: 25px; }
 }
 @media (max-width: 760px) {
   .topbar { gap: 8px; padding: 0 13px; }
-  .brand-logo { width: 142px; height: 43px; }
+  .brand-wordmark { padding-left: 8px; }
+  .brand-wordmark strong { font-size: 13px; }
+  .brand-wordmark small { display: none; }
   .health span { display: none; }
   .tab { min-width: 0; padding: 0 10px; }
   .hero { padding-top: 30px; }
