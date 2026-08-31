@@ -1,19 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 140" role="img" aria-labelledby="title desc">
-  <title id="title">Fafnir cartoon logo</title>
-  <desc id="desc">A friendly orange dragon hugging a golden asset crate.</desc>
-  <g transform="translate(8 4)" stroke="#0a0c0f" stroke-width="4" stroke-linejoin="round">
-    <path fill="#ff6b3d" d="M21 91C5 69 13 34 40 21 70 7 105 24 111 54c5 22-6 46-27 57-23 12-49 3-63-20z"/>
-    <path fill="#ff9a78" d="M43 21 31 3l25 13M79 18 93 1l1 28"/>
-    <path fill="#f1f2ed" d="M66 42c17-9 35-4 42 10-11 4-14 12-12 23-17 4-31-1-37-12z"/>
-    <circle cx="87" cy="51" r="5" fill="#0a0c0f" stroke="none"/>
-    <circle cx="89" cy="49" r="1.5" fill="#f1f2ed" stroke="none"/>
-    <path fill="none" d="M93 67c7 4 12 3 17-1M28 72c-17 2-21 13-12 23M76 96c18 14 36 7 42-8"/>
-    <path fill="#e3c66d" d="m28 75 38-12 28 24-4 38-42 6-26-25z"/>
-    <path fill="#f4df91" d="m28 75 39 17 27-5-28-24z"/>
-    <path fill="#bc9443" d="m67 92 27-5-4 38-25 4z"/>
-    <path fill="none" d="m28 75 39 17-2 37"/>
+  <title id="title">Fafnir stylized mascot logo</title>
+  <desc id="desc">A chunky cel-shaded dragon and treasure crate in the style of a western game asset pack.</desc>
+  <defs>
+    <linearGradient id="ember" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff9a55"/>
+      <stop offset=".56" stop-color="#f06436"/>
+      <stop offset="1" stop-color="#b93525"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe39a"/>
+      <stop offset="1" stop-color="#d49335"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(4 3)" stroke="#11151a" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <path fill="#202731" d="M13 46 57 8l57 19 14 60-40 43-58-12L5 82z"/>
+    <path fill="#3a4552" d="m17 48 43-32 48 16 11 50-34 38-49-10L14 79z"/>
+    <path fill="#c9d2d4" d="M49 29 36 5 65 18 87 2l-5 31z"/>
+    <path fill="#7d8a90" d="m49 29 7-14 9 3-6 22zm38-27-5 31-11-4z" stroke="none"/>
+    <path fill="url(#ember)" d="M31 65c4-30 23-45 49-40 24 5 39 25 36 48l-16 4 12 13-25 15-21-7-13 17-27-22z"/>
+    <path fill="#a92e28" d="m31 65 28 4 7 29-13 17-27-22z" stroke="none"/>
+    <path fill="#ffad5e" d="m59 69 25-28 29 14 3 18-16 4 12 13-25 15-21-7z" stroke="none"/>
+    <path fill="#f7e4bd" d="m79 51 23-4 14 8-3 14-23 7-21-8z"/>
+    <path fill="#11151a" d="m86 51 13 2-9 9-12-2z" stroke="none"/>
+    <path fill="#ffe98a" d="m87 53 6 1-4 4-5-1z" stroke="none"/>
+    <path fill="#f1f2ed" d="m97 77 12 1-9 8zM83 80l11-2-5 10z" stroke-width="3"/>
+    <path fill="none" d="m74 86 18 8 20-4"/>
+    <path fill="url(#gold)" d="m18 88 39-12 32 18-4 33-43 8-29-20z"/>
+    <path fill="#ffe7a1" d="m18 88 39 15 32-9-32-18z" stroke="none"/>
+    <path fill="#b97628" d="m57 103 32-9-4 33-29 6z" stroke="none"/>
+    <path fill="none" d="m18 88 39 15-1 30M12 114l44 19"/>
+    <path fill="#ff6b3d" d="M95 106c15-8 28-4 35 8-12 1-18 6-20 14-9-2-15-8-15-22z"/>
   </g>
-  <text x="150" y="78" fill="#f1f2ed" font-family="Arial Rounded MT Bold,Trebuchet MS,sans-serif" font-size="55" font-weight="800" letter-spacing="3">FAFNIR</text>
-  <rect x="150" y="91" width="282" height="25" rx="12.5" fill="#ff6b3d"/>
-  <text x="169" y="108" fill="#160c08" font-family="Trebuchet MS,Arial,sans-serif" font-size="13" font-weight="800" letter-spacing="2">ASSET STACK MANAGER</text>
+  <text x="151" y="79" fill="url(#gold)" stroke="#11151a" stroke-width="7" paint-order="stroke" font-family="Arial Black,Impact,sans-serif" font-size="58" font-style="italic" font-weight="900" letter-spacing="1">FAFNIR</text>
+  <path fill="#11151a" stroke="#ff6b3d" stroke-width="3" d="M151 91h326l-18 28H169z"/>
+  <text x="191" y="110" fill="#f1f2ed" font-family="Trebuchet MS,Arial,sans-serif" font-size="13" font-weight="800" letter-spacing="2.4">ASSET STACK MANAGER</text>
 </svg>

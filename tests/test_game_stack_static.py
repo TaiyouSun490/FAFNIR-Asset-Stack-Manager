@@ -33,7 +33,7 @@ class StaticGuiTests(unittest.TestCase):
         self.assertIn("Rune Vault", brand)
         self.assertIn("Flat Geometry", brand)
         self.assertIn("Graffiti Slash", brand)
-        self.assertIn("Cartoon Hoarder", brand)
+        self.assertIn("Western Stylized", brand)
         self.assertIn('src="/fafnir-logo-rune.svg"', self.html)
         self.assertIn("Fafnir — Asset Stack Manager", self.html)
         self.assertNotIn("STACKFORGE /", self.html)
