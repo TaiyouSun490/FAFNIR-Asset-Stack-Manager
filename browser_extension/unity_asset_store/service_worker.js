@@ -54,7 +54,7 @@ async function activeProductTab() {
 async function native(message) {
   const response = await chrome.runtime.sendNativeMessage(NATIVE_HOST, message);
   if (!response || response.schema_version !== SCHEMA_VERSION) {
-    throw new Error("Stackforge Native Hostから不正な応答がありました。");
+    throw new Error("Fafnir Native Hostから不正な応答がありました。");
   }
   return response;
 }

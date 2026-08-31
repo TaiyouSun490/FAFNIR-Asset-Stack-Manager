@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 140" role="img" aria-labelledby="title desc">
+  <title id="title">Fafnir graffiti logo</title>
+  <desc id="desc">A rough sprayed Fafnir wordmark with a dragon slash.</desc>
+  <g transform="skewX(-10)">
+    <text x="38" y="91" fill="none" stroke="#0a0c0f" stroke-width="13" stroke-linejoin="round" font-family="Impact,Arial Black,sans-serif" font-size="78" letter-spacing="4">FAFNIR</text>
+    <text x="38" y="91" fill="#f1f2ed" stroke="#ff6b3d" stroke-width="3" stroke-linejoin="round" font-family="Impact,Arial Black,sans-serif" font-size="78" letter-spacing="4">FAFNIR</text>
+    <path fill="none" stroke="#ff6b3d" stroke-width="7" stroke-linecap="square" d="m45 106 414-7 43-29-20 34 31 6-64 8z"/>
+    <path fill="none" stroke="#ff9a78" stroke-width="3" d="m39 22 53-11m-30 21 67-13m352 6 36-8"/>
+  </g>
+  <g fill="#ff6b3d">
+    <circle cx="31" cy="112" r="5"/><circle cx="18" cy="125" r="2.5"/><circle cx="521" cy="37" r="4"/><circle cx="536" cy="25" r="2"/>
+  </g>
+  <text x="211" y="134" fill="#929aa4" font-family="Cascadia Mono,Consolas,monospace" font-size="12" font-weight="700" letter-spacing="3">ASSET STACK MANAGER</text>
+</svg>

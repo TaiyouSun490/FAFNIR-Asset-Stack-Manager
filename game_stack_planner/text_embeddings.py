@@ -1,6 +1,6 @@
 """Local multilingual text embeddings for owned-asset retrieval.
 
-The runtime is deliberately lazy: importing Stackforge does not import PyTorch,
+The runtime is deliberately lazy: importing Fafnir does not import PyTorch,
 load a model, or access the network.  An explicit RAG indexing operation loads
 the configured Hugging Face model and persists only normalized float vectors.
 """
@@ -89,6 +89,7 @@ class TransformersTextEmbeddingBackend:
     ) -> None:
         self._model_id = str(
             model_id
+            or os.getenv("FAFNIR_TEXT_EMBEDDING_MODEL")
             or os.getenv("STACKFORGE_TEXT_EMBEDDING_MODEL")
             or DEFAULT_TEXT_EMBEDDING_MODEL
         ).strip()
@@ -96,6 +97,7 @@ class TransformersTextEmbeddingBackend:
             raise ValueError("model_id is invalid")
         configured_revision = str(
             revision
+            or os.getenv("FAFNIR_TEXT_EMBEDDING_REVISION")
             or os.getenv("STACKFORGE_TEXT_EMBEDDING_REVISION")
             or (
                 DEFAULT_TEXT_EMBEDDING_REVISION
@@ -267,7 +269,7 @@ class TransformersTextEmbeddingBackend:
                 url,
                 headers={
                     "Range": f"bytes={absolute_start}-{range_end}",
-                    "User-Agent": "Stackforge/0.4 pinned-model-downloader",
+                    "User-Agent": "Fafnir/0.5 pinned-model-downloader",
                 },
             )
             try:

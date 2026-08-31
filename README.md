@@ -1,8 +1,13 @@
-# Stackforge
+# Fafnir
+
+**Asset Stack Manager** — owned assets are the hoard; an implementation-ready
+stack is what Fafnir brings back.
+
+[Logo studies and brand assets](game_stack_planner/static/brand.html)
 
 [日本語の利用ガイド](docs/USER_GUIDE.md)
 
-Stackforge is a local-first Unity game stack planner. It turns a game idea and
+Fafnir is a local-first Unity asset stack manager. It turns a game idea and
 an optional Unity project into an evidence-backed comparison across three
 independent lanes:
 
@@ -46,7 +51,7 @@ also be used from automation.
 - Expose the local catalog and approval-gated installer as MCP tools so an MCP
   client such as Codex can judge concrete uses and combinations itself.
 
-Stackforge does not purchase products, export a Unity OAuth token, or
+Fafnir does not purchase products, export a Unity OAuth token, or
 automatically treat a local cache file as proof of ownership. It fetches only
 public metadata for product IDs already in the local catalog through a resumable,
 rate-limited queue; it does not enumerate search results, use cookies, or
@@ -60,67 +65,82 @@ Python 3.12 or newer is required.
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
-game-stack ui
+fafnir ui
 ```
 
 Open `http://127.0.0.1:8770/` if the browser does not open automatically.
-Stackforge listens on loopback only.
+Fafnir listens on loopback only. The former `game-stack` command remains as a
+compatibility alias.
+
+The rebrand intentionally keeps existing local data and integration identifiers:
+`game_stack_planner`, `%LOCALAPPDATA%\game-stack-planner`,
+`com.taiyousun.stackforge`, versioned `stackforge.*` schemas, and legacy MCP tool
+aliases. Existing catalogs and Unity bridge installations therefore need no
+migration.
+
+If the former editable Python distribution is already installed in the same
+environment, replace it once so the new console launcher wins module discovery:
+
+```powershell
+python -m pip uninstall -y stackforge-unity
+python -m pip install -e ".[dev]"
+```
 
 ```powershell
 # Inspect a Unity project
-game-stack scan C:\Projects\MyGame
+fafnir scan C:\Projects\MyGame
 
 # Compare all three source lanes
-game-stack recommend `
+fafnir recommend `
   --prompt "Quest向け4人協力ローグライト" `
   --project C:\Projects\MyGame `
   --platform quest
 
 # Work entirely from the saved local catalog
-game-stack recommend --prompt "2D deckbuilder" --offline
+fafnir recommend --prompt "2D deckbuilder" --offline
 
 # Inspect downloaded Asset Store packages without claiming purchase ownership
-game-stack scan-cache --inspect
+fafnir scan-cache --inspect
 
 # Import an export created by the Unity Editor bridge
-game-stack sync-my-assets
+fafnir sync-my-assets
 
 # UI and MCP startup automatically download the pinned model once and
 # build/update the owned-asset embedding index in the background.
 # Inspect progress or explicitly repair/rebuild the index:
-game-stack --json rag-status
-game-stack --json rag-index
+fafnir --json rag-status
+fafnir --json rag-index
 
 # Public product metadata coverage and an explicit bounded refresh
-game-stack --json asset-details-status
-game-stack --json asset-details-sync --limit 20
+fafnir --json asset-details-status
+fafnir --json asset-details-sync --limit 20
 
 # Validate one cached product against a project; staging compile is opt-in
-game-stack --json validate-asset asset_store:12345 --project C:\Projects\MyGame
-game-stack --json validate-asset asset_store:12345 --project C:\Projects\MyGame --compile
+fafnir --json validate-asset asset_store:12345 --project C:\Projects\MyGame
+fafnir --json validate-asset asset_store:12345 --project C:\Projects\MyGame --compile
 
 # Search one lane
-game-stack catalog --scope community --query networking
+fafnir catalog --scope community --query networking
 ```
 
-Set `GITHUB_TOKEN` if you need a higher GitHub Search API rate limit. Stackforge
+Set `GITHUB_TOKEN` if you need a higher GitHub Search API rate limit. Fafnir
 does not load `.env` files automatically.
 
 ### MCP integration
 
-Stackforge can run as a local stdio MCP server. The MCP client performs the LLM
-reasoning; Stackforge never needs an OpenAI API key.
+Fafnir can run as a local stdio MCP server. The MCP client performs the LLM
+reasoning; Fafnir never needs an OpenAI API key.
 
 ```powershell
-codex mcp add stackforge -- game-stack mcp
-codex mcp get stackforge
+codex mcp add fafnir -- fafnir mcp
+codex mcp get fafnir
 ```
 
 For a source checkout, use the checkout's Python interpreter and module command
-instead of relying on a globally installed `game-stack` executable:
+instead of relying on a globally installed `fafnir` executable:
 
 ```powershell
-codex mcp add stackforge -- `
+codex mcp add fafnir -- `
   C:\path\to\.venv\Scripts\python.exe -m game_stack_planner mcp
 ```
 
@@ -135,7 +155,7 @@ contents are never returned.
 Normal UI and MCP startup automatically imports a changed Unity My Assets export,
 then starts a detached index worker for the pinned `intfloat/multilingual-e5-small`
 model. The worker survives a short-lived MCP session and resumes the official
-Hugging Face HTTP cache on slow links. `stackforge_status`, `rag-status`, and the
+Hugging Face HTTP cache on slow links. `fafnir_status`, `rag-status`, and the
 local UI expose the state, active generation, progress, coverage, and bounded
 failure message. Until the dense generation reaches 100% coverage, owned-asset
 search remains usable through an explicitly labeled `lexical_fallback`; it never
@@ -145,11 +165,13 @@ use `hybrid_dense`: cosine similarity remains visible as `score`, while the fina
 
 `rag-index` is a synchronous CLI repair command. The MCP tool
 `reindex_owned_asset_rag` only queues the same work and returns immediately.
-Custom E5-compatible models require both `STACKFORGE_TEXT_EMBEDDING_MODEL` and an
-immutable `STACKFORGE_TEXT_EMBEDDING_REVISION`. Stored vectors are isolated by
+Custom E5-compatible models require both `FAFNIR_TEXT_EMBEDDING_MODEL` and an
+immutable `FAFNIR_TEXT_EMBEDDING_REVISION`. Stored vectors are isolated by
 model revision, tokenizer/pooling pipeline, and token limit. Vectors are never
-included in MCP or HTTP responses. `STACKFORGE_RAG_MIN_SIMILARITY` changes the
+included in MCP or HTTP responses. `FAFNIR_RAG_MIN_SIMILARITY` changes the
 visible default relevance threshold (default `0.72`) without a code edit.
+The former `STACKFORGE_*` names remain accepted as lower-priority compatibility
+aliases.
 
 ### Is the local web UI required?
 
@@ -175,16 +197,16 @@ Install the embedded package from
 Manager's **Add package from disk** command. Then:
 
 1. Sign in to Unity Hub / Unity Editor.
-2. Open **Tools > Stackforge > My Assets Sync**.
+2. Open **Tools > Fafnir > My Assets Sync**.
 3. Keep the default periodic sync enabled (6 hours), adjust its visible interval,
    or click **My Assetsを同期** for an immediate post-purchase refresh.
-4. Keep Stackforge running or start it later; it imports the changed export and
+4. Keep Fafnir running or start it later; it imports the changed export and
    queues differential indexing automatically. The Catalog button is a manual
    repair/check path, not a required second sync step.
 
 The Editor bridge writes a versioned JSON file under the user's local application
 data directory. It includes only product ID, display name, Asset Store tags,
-purchase/grant time, hidden state, Unity version, and export time. Stackforge
+purchase/grant time, hidden state, Unity version, and export time. Fafnir
 does not require Asset Inventory or a Chrome extension for this workflow.
 
 The bridge is an adapter over Unity Editor's undocumented internal Package
@@ -193,11 +215,12 @@ design follows Unity's published reference source for the
 [service container](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/PackageManagerUI/Editor/Services/ServicesContainer.cs),
 [My Assets REST service](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/PackageManagerUI/Editor/Services/AssetStore/AssetStoreRestAPI.cs),
 and [purchase result model](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/PackageManagerUI/Editor/Services/AssetStore/AssetStorePurchases.cs).
-That reference source is not copied or redistributed by Stackforge.
+That reference source is not copied or redistributed by Fafnir.
 
 ## Documentation
 
 - [日本語の利用ガイド（UI・CLI・Codex・Claude・ローカルRAG）](docs/USER_GUIDE.md)
+- [Brand guide and four logo variants](docs/BRAND.md)
 - [Planner workflow](docs/GAME_STACK_PLANNER.md)
 - [Federated source model](docs/GAME_STACK_FEDERATED_SEARCH.md)
 - [Approval-gated installation](docs/GAME_STACK_INSTALLATION.md)
@@ -215,5 +238,5 @@ integrity, rollback checks, and static UI contracts.
 ## License
 
 [MIT](LICENSE). Unity, Unity Asset Store, GitHub, OpenUPM, and Chrome are products
-or trademarks of their respective owners. Stackforge is not affiliated with or
+or trademarks of their respective owners. Fafnir is not affiliated with or
 endorsed by them.

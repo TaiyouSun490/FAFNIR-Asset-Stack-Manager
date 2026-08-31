@@ -52,7 +52,7 @@ async function refresh() {
     schema_version: SCHEMA_VERSION,
   });
   if (!response?.ok) {
-    throw new Error(response?.error?.message || "Stackforgeへ接続できません。");
+    throw new Error(response?.error?.message || "Fafnirへ接続できません。");
   }
   $("#connection").textContent = "接続済み";
   $("#connection").dataset.state = "ready";
@@ -85,7 +85,7 @@ async function save() {
     if (!response?.ok) {
       throw new Error(response?.error?.message || "候補を保存できませんでした。");
     }
-    setStatus("Stackforgeへ候補を保存しました。", "success");
+    setStatus("Fafnirへ候補を保存しました。", "success");
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "保存に失敗しました。", "error");
   } finally {

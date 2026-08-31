@@ -124,6 +124,9 @@ class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("reindex_owned_asset_rag", tools)
                     self.assertIn("prepare_candidate_install", tools)
                     self.assertIn("apply_reviewed_install", tools)
+                    self.assertIn("fafnir_status", tools)
+                    self.assertIn("stackforge_status", tools)
+                    self.assertIn("get_fafnir_install_status", tools)
                     self.assertTrue(
                         tools["search_unity_assets"].annotations.read_only_hint
                     )
@@ -134,7 +137,7 @@ class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
                         tools["reindex_owned_asset_rag"].annotations.open_world_hint
                     )
 
-                    called = await client.call_tool("stackforge_status", {})
+                    called = await client.call_tool("fafnir_status", {})
                     self.assertFalse(called.is_error)
                     self.assertEqual(
                         called.structured_content["catalog"]["total"], 0

@@ -38,7 +38,7 @@ def load_configuration(path: str | Path | None = None) -> dict[str, str]:
     except (OSError, json.JSONDecodeError) as exc:
         raise NativeMessagingError(
             "host_not_configured",
-            "Stackforge Native Messaging host is not configured.",
+            "Fafnir Native Messaging host is not configured.",
         ) from exc
     if not isinstance(value, dict) or set(value) != {
         "allowed_origin",
@@ -46,7 +46,7 @@ def load_configuration(path: str | Path | None = None) -> dict[str, str]:
     }:
         raise NativeMessagingError(
             "invalid_host_configuration",
-            "Stackforge Native Messaging configuration is invalid.",
+            "Fafnir Native Messaging configuration is invalid.",
         )
     origin = value.get("allowed_origin")
     database = value.get("database_path")
@@ -59,7 +59,7 @@ def load_configuration(path: str | Path | None = None) -> dict[str, str]:
     ):
         raise NativeMessagingError(
             "invalid_host_configuration",
-            "Stackforge Native Messaging configuration is invalid.",
+            "Fafnir Native Messaging configuration is invalid.",
         )
     return {"allowed_origin": origin, "database_path": database}
 
@@ -136,7 +136,7 @@ def _error(error: Exception) -> dict[str, Any]:
         message = str(error)
     else:
         code = "native_host_error"
-        message = "Stackforge could not process the browser request."
+        message = "Fafnir could not process the browser request."
     return {
         "ok": False,
         "schema_version": SCHEMA_VERSION,
@@ -257,7 +257,7 @@ def run_host(
         if origin != configuration["allowed_origin"]:
             raise NativeMessagingError(
                 "forbidden_extension",
-                "This Chrome extension is not allowed to use Stackforge.",
+                "This Chrome extension is not allowed to use Fafnir.",
             )
     except Exception as exc:
         write_message(output_stream, _error(exc))

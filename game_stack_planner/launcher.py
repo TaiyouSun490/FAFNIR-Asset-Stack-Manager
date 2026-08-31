@@ -20,7 +20,7 @@ def run_local_ui(
     server = create_server(application, port=port)
     actual_port = server.server_address[1]
     url = f"http://127.0.0.1:{actual_port}/"
-    print(f"Game Stack Planner: {url}")
+    print(f"Fafnir Asset Stack Manager: {url}")
     print("Press Ctrl+C to stop.")
     if open_browser:
         threading.Timer(0.35, lambda: webbrowser.open(url)).start()

@@ -19,6 +19,25 @@ class StaticGuiTests(unittest.TestCase):
         self.assertIn('src="/app.js"', self.html)
         self.assertNotIn("<script>", self.html)
 
+    def test_fafnir_brand_assets_are_packaged_and_header_uses_recommended_logo(self):
+        for name in (
+            "fafnir-mark.svg",
+            "fafnir-logo-rune.svg",
+            "fafnir-logo-flat.svg",
+            "fafnir-logo-graffiti.svg",
+            "fafnir-logo-cartoon.svg",
+        ):
+            with self.subTest(name=name):
+                self.assertTrue((self.root / name).is_file())
+        brand = (self.root / "brand.html").read_text(encoding="utf-8")
+        self.assertIn("Rune Vault", brand)
+        self.assertIn("Flat Geometry", brand)
+        self.assertIn("Graffiti Slash", brand)
+        self.assertIn("Cartoon Hoarder", brand)
+        self.assertIn('src="/fafnir-logo-rune.svg"', self.html)
+        self.assertIn("Fafnir — Asset Stack Manager", self.html)
+        self.assertNotIn("STACKFORGE /", self.html)
+
     def test_gui_exposes_plans_catalog_and_manual_capture(self):
         self.assertIn("ゲーム要件", self.html)
         self.assertIn("選定候補", self.html)

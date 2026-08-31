@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 140" role="img" aria-labelledby="title desc">
+  <title id="title">Fafnir flat logo</title>
+  <desc id="desc">A clean geometric dragon wrapping around an asset cube.</desc>
+  <g transform="translate(12 13)">
+    <path fill="#ff6b3d" d="M55 0 108 27v59l-53 28L2 86V27zm0 16L18 35v42l37 20 37-20V35z"/>
+    <path fill="#ff9a78" d="m55 16 37 19-37 20-37-20z"/>
+    <path fill="#d94b20" d="M18 35 55 55v42L18 77z"/>
+    <path fill="#f1f2ed" d="M92 35 55 55v42l37-20z"/>
+    <path fill="#11151a" d="M71 43c16-16 33-14 45-5l-15 1 7 12-19-7-10 8z"/>
+    <circle cx="94" cy="42" r="2.5" fill="#ff6b3d"/>
+  </g>
+  <text x="145" y="78" fill="#f1f2ed" font-family="Segoe UI Variable,Segoe UI,Arial,sans-serif" font-size="56" font-weight="750" letter-spacing="5">FAFNIR</text>
+  <text x="148" y="105" fill="#929aa4" font-family="Cascadia Mono,Consolas,monospace" font-size="14" font-weight="700" letter-spacing="2.6">ASSET STACK MANAGER</text>
+</svg>

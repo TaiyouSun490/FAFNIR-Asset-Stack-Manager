@@ -1,4 +1,4 @@
-"""Hardened loopback-only HTTP server for the Game Stack Planner UI."""
+"""Hardened loopback-only HTTP server for the Fafnir UI."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def _error(status: int, code: str, message: str, details: dict[str, Any] | None 
 
 
 class PlannerHandler(BaseHTTPRequestHandler):
-    server_version = "GameStackPlanner"
+    server_version = "Fafnir"
 
     @property
     def app(self) -> GameStackApplication:

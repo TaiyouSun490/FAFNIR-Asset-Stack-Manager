@@ -28,6 +28,7 @@ class StackforgeExtensionIconTests(unittest.TestCase):
         self.assertEqual(expected, self.manifest["icons"])
         self.assertEqual(expected, self.manifest["action"]["default_icon"])
         self.assertEqual("0.2.0", self.manifest["version"])
+        self.assertEqual("Fafnir Asset Store Capture & RAG", self.manifest["name"])
         self.assertNotIn("host_permissions", self.manifest)
         self.assertEqual(
             {"activeTab", "nativeMessaging"},

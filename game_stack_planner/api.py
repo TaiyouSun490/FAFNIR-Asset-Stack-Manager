@@ -188,7 +188,11 @@ class GameStackApplication:
 
     @staticmethod
     def _asset_store_detail_ttl_days() -> int:
-        raw = os.getenv("STACKFORGE_ASSET_STORE_DETAIL_TTL_DAYS", "30")
+        raw = (
+            os.getenv("FAFNIR_ASSET_STORE_DETAIL_TTL_DAYS")
+            or os.getenv("STACKFORGE_ASSET_STORE_DETAIL_TTL_DAYS")
+            or "30"
+        )
         try:
             return max(1, min(int(raw), 3650))
         except ValueError:

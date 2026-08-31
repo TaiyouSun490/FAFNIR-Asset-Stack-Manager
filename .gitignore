@@ -19,7 +19,7 @@ venv/
 *.sqlite-journal
 *.sqlite3-journal
 
-# Stackforge user data and local model artifacts
+# Fafnir user data and local model artifacts
 unity-my-assets.json
 rag-index.log
 asset-store-details.log

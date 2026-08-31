@@ -73,13 +73,17 @@ class StackRepository:
     ) -> None:
         self.path = Path(path or default_database_path()).expanduser()
         self.embedding_backend = embedding_backend
-        raw_minimum = os.getenv("STACKFORGE_RAG_MIN_SIMILARITY", "0.72")
+        raw_minimum = (
+            os.getenv("FAFNIR_RAG_MIN_SIMILARITY")
+            or os.getenv("STACKFORGE_RAG_MIN_SIMILARITY")
+            or "0.72"
+        )
         try:
             self.rag_min_similarity = float(raw_minimum)
         except ValueError as exc:
-            raise ValueError("STACKFORGE_RAG_MIN_SIMILARITY must be numeric") from exc
+            raise ValueError("FAFNIR_RAG_MIN_SIMILARITY must be numeric") from exc
         if not -1.0 <= self.rag_min_similarity <= 1.0:
-            raise ValueError("STACKFORGE_RAG_MIN_SIMILARITY must be between -1 and 1")
+            raise ValueError("FAFNIR_RAG_MIN_SIMILARITY must be between -1 and 1")
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
         self._index_run_lock = threading.Lock()
@@ -1930,7 +1934,7 @@ class StackRepository:
         ):
             self._connection.rollback()
             raise RagIndexBusyError(
-                "another Stackforge process is already building the RAG index"
+                "another Fafnir process is already building the RAG index"
             )
         self._write_rag_index_state(
             identity=identity,

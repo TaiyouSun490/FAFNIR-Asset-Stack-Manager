@@ -1,6 +1,6 @@
-# Stackforge Asset Store Capture & RAG
+# Fafnir Asset Store Capture & RAG
 
-Unity Asset Storeの商品ページを、購入状態未確認の候補として保存するか、購入済み（自己申告）としてローカルのStackforge RAGへ1件ずつ登録するChrome拡張です。BOOTH用拡張とは別の拡張・別のNative Messaging hostです。
+Unity Asset Storeの商品ページを、購入状態未確認の候補として保存するか、購入済み（自己申告）としてローカルのFafnir RAGへ1件ずつ登録するChrome拡張です。BOOTH用拡張とは別の拡張・別のNative Messaging hostです。
 
 ## 安全境界
 
@@ -16,7 +16,8 @@ Unity Asset Storeの商品ページを、購入状態未確認の候補として
 
 ## インストール
 
-1. `pip install -e .` などで `game-stack-native-host.exe` を利用可能にします。
+1. `pip install -e .` などで `fafnir-native-host.exe` を利用可能にします。旧名の
+   `game-stack-native-host.exe` も互換aliasとして残ります。
 2. Chromeの `chrome://extensions` でデベロッパーモードを有効にし、「パッケージ化されていない拡張機能を読み込む」からこのフォルダーを選びます。
 3. 表示された拡張IDを指定して、PowerShellで次を実行します。
 

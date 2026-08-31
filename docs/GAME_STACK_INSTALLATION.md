@@ -1,6 +1,6 @@
-# Stackforge AI導入フロー
+# Fafnir AI導入フロー
 
-Stackforgeは、AIが自由なshell commandやURLを生成して実行する方式ではありません。
+Fafnirは、AIが自由なshell commandやURLを生成して実行する方式ではありません。
 AIが選べる入力は、ローカルカタログに保存された `candidate_id` と対象Unity
 projectだけです。決定的なinstallerが候補を再取得し、source別の閉じたactionへ
 変換します。

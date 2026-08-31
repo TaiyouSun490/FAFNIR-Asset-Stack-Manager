@@ -53,21 +53,8 @@ a { color: inherit; }
   z-index: 20;
 }
 .topbar::after { content: ""; position: absolute; left: 0; bottom: -1px; width: 84px; height: 1px; background: var(--accent); }
-.brand { color: inherit; display: flex; align-items: center; gap: 11px; text-decoration: none; }
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  font: 800 10px/1 "Cascadia Mono", Consolas, monospace;
-  letter-spacing: .08em;
-  transform: skewX(-6deg);
-  background: rgba(255, 107, 61, .08);
-}
-.brand strong { display: block; font: 750 13px/1.1 "Cascadia Mono", Consolas, monospace; letter-spacing: .16em; }
-.brand small { display: block; margin-top: 4px; color: var(--dim); font: 9px/1 "Cascadia Mono", Consolas, monospace; text-transform: uppercase; }
+.brand { color: inherit; display: flex; align-items: center; text-decoration: none; }
+.brand-logo { display: block; width: 196px; height: 50px; object-fit: contain; object-position: left center; }
 .tabs { height: 100%; display: flex; margin-left: auto; }
 .tab {
   position: relative;
@@ -315,6 +302,25 @@ dialog form { padding: 25px; }
 .toast { position: fixed; right: 20px; bottom: 20px; padding: 11px 15px; color: #120b07; background: var(--accent); transform: translateY(90px); transition: .25s; z-index: 100; font-size: 11px; font-weight: 700; box-shadow: var(--shadow); }
 .toast.show { transform: translateY(0); }
 
+.brand-page { min-height: 100vh; }
+.brand-sheet { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 58px 0 90px; }
+.brand-sheet-header { display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 28px; }
+.brand-sheet-header h1 { font-size: clamp(36px, 6vw, 72px); }
+.brand-sheet-header p:last-child { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
+.brand-sheet-header .button { width: auto; flex: 0 0 auto; text-decoration: none; }
+.logo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.logo-study { position: relative; overflow: hidden; border: 1px solid var(--line); background: rgba(19, 23, 28, .94); }
+.logo-study.recommended { border-color: var(--line-hot); box-shadow: inset 3px 0 var(--accent); }
+.logo-study > div:last-child { padding: 19px 21px 22px; }
+.logo-study span { color: var(--accent); font: 700 9px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .14em; }
+.logo-study h2 { margin: 8px 0 7px; font-size: 18px; }
+.logo-study p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.65; }
+.logo-canvas { min-height: 190px; display: grid; place-items: center; padding: 30px; border-bottom: 1px solid var(--line); background: #0d1014; }
+.logo-canvas::before { content: ""; position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size: 20px 20px; mask-image: linear-gradient(#000 0 190px, transparent 190px); }
+.logo-canvas img { position: relative; z-index: 1; display: block; width: 100%; max-width: 500px; }
+.logo-canvas.graffiti { background: #11100f; }
+.logo-canvas.cartoon { background: #101519; }
+
 @media (max-width: 1040px) {
   .hero { grid-template-columns: 1fr; }
   .stats { width: 100%; }
@@ -324,7 +330,8 @@ dialog form { padding: 25px; }
 }
 @media (max-width: 760px) {
   .topbar { gap: 8px; padding: 0 13px; }
-  .brand small, .health span { display: none; }
+  .brand-logo { width: 142px; height: 43px; }
+  .health span { display: none; }
   .tab { min-width: 0; padding: 0 10px; }
   .hero { padding-top: 30px; }
   h1 { font-size: 35px; }
@@ -346,4 +353,8 @@ dialog form { padding: 25px; }
   .catalog-header { align-items: start; flex-direction: column; }
   .catalog-layout { grid-template-columns: 1fr; }
   .filters { position: static; max-height: none; }
+  .brand-sheet { width: min(100% - 24px, 620px); padding-top: 34px; }
+  .brand-sheet-header { align-items: start; flex-direction: column; }
+  .logo-grid { grid-template-columns: 1fr; }
+  .logo-canvas { min-height: 150px; padding: 20px; }
 }

@@ -58,7 +58,7 @@ def load_unity_my_assets(
         size = target.stat().st_size
     except FileNotFoundError as exc:
         raise UnityMyAssetsError(
-            "Unity My Assets export was not found. Run Tools > Stackforge > "
+            "Unity My Assets export was not found. Run Tools > Fafnir > "
             "My Assets Sync inside Unity first."
         ) from exc
     except OSError as exc:

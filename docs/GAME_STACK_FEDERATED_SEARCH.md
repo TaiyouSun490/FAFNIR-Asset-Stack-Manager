@@ -1,6 +1,6 @@
-# Stackforge federated search
+# Fafnir federated search
 
-Stackforgeの検索価値は、同じゲーム機能に対して次の3レーンを並べて比較できることです。
+Fafnirの検索価値は、同じゲーム機能に対して次の3レーンを並べて比較できることです。
 
 1. **手持ち・ローカル** — ユーザーが所有を明示したAsset Store商品、Unityのローカルキャッシュ、現在のUnityプロジェクトにあるパッケージ
 2. **購入未確認候補** — 公式Asset Store検索からユーザーが保存した商品
@@ -47,7 +47,7 @@ game-stack catalog --scope owned_assets --query inventory
 .\docs\install_game_stack_native_messaging_host.ps1 -ExtensionId <拡張ID>
 ```
 
-Native hostはChrome拡張originを1つだけ許可し、URL・message schema・機能キーを本体側でも再検証します。Stackforge HTTP serverのloopback Origin制限は緩和しません。
+Native hostはChrome拡張originを1つだけ許可し、URL・message schema・機能キーを本体側でも再検証します。Fafnir HTTP serverのloopback Origin制限は緩和しません。
 
 ## Asset Storeアクセス方針
 

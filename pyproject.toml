@@ -3,9 +3,9 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "stackforge-unity"
+name = "fafnir-asset-manager"
 version = "0.5.0"
-description = "A local-first planner that compares owned Unity assets, Asset Store candidates, GitHub repositories, and OpenUPM packages."
+description = "Fafnir is a local-first asset stack manager for owned Unity assets, Asset Store candidates, GitHub, and OpenUPM."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
@@ -35,7 +35,9 @@ rag = [
 ]
 
 [project.scripts]
+fafnir = "game_stack_planner.cli:main"
 game-stack = "game_stack_planner.cli:main"
+fafnir-native-host = "game_stack_planner.native_messaging:main"
 game-stack-native-host = "game_stack_planner.native_messaging:main"
 
 [tool.setuptools.packages.find]
@@ -43,7 +45,7 @@ where = ["."]
 include = ["game_stack_planner*"]
 
 [tool.setuptools.package-data]
-"game_stack_planner" = ["static/*.html", "static/*.css", "static/*.js"]
+"game_stack_planner" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

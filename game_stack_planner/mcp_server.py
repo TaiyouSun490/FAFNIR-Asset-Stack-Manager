@@ -1,4 +1,4 @@
-"""MCP tools that let an external coding agent reason over Stackforge data."""
+"""MCP tools that let an external coding agent reason over Fafnir data."""
 
 from __future__ import annotations
 
@@ -372,8 +372,8 @@ def build_mcp_server(
     app.enable_automatic_maintenance(sync_my_assets=db_path is None)
     tools = StackforgeMcpTools(app)
     server = MCPServer(
-        "stackforge",
-        title="Stackforge Unity Asset Planner",
+        "fafnir",
+        title="Fafnir Asset Stack Manager",
         description=(
             "Search owned Unity assets, Asset Store candidates, GitHub and OpenUPM; "
             "retrieve evidence for a complete game stack; and safely review installs."
@@ -401,8 +401,14 @@ def build_mcp_server(
     )
 
     server.tool(
-        name="stackforge_status",
+        name="fafnir_status",
         description="Inspect catalog counts and the recommended MCP workflow.",
+        annotations=read_only,
+    )(tools.status)
+    # Backward-compatible alias for existing MCP configurations and prompts.
+    server.tool(
+        name="stackforge_status",
+        description="Legacy alias of fafnir_status.",
         annotations=read_only,
     )(tools.status)
     server.tool(
@@ -506,8 +512,14 @@ def build_mcp_server(
         ),
     )(tools.apply_reviewed_install)
     server.tool(
+        name="get_fafnir_install_status",
+        description="Read one existing Fafnir install job without modifying it.",
+        annotations=read_only,
+    )(tools.get_install_status)
+    # Backward-compatible alias for existing MCP clients.
+    server.tool(
         name="get_stackforge_install_status",
-        description="Read one existing Stackforge install job without modifying it.",
+        description="Legacy alias of get_fafnir_install_status.",
         annotations=read_only,
     )(tools.get_install_status)
     server.tool(

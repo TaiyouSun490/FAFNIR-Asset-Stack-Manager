@@ -1,4 +1,4 @@
-"""Command line interface for the standalone Game Stack Planner."""
+"""Command line interface for Fafnir Asset Stack Manager."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from .launcher import run_local_ui
 
 def _print(value: Any, *, as_json: bool) -> None:
     # Windows PowerShell can still expose a legacy cp932 stdout even when the
-    # payload is valid UTF-8 JSON.  Stackforge responses contain publisher text
+    # payload is valid UTF-8 JSON. Fafnir responses contain publisher text
     # and punctuation outside that code page, so make the CLI contract UTF-8.
     reconfigure = getattr(sys.stdout, "reconfigure", None)
     if callable(reconfigure):
@@ -30,7 +30,7 @@ def _print(value: Any, *, as_json: bool) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="game-stack",
+        prog="fafnir",
         description=(
             "Turn a game idea and Unity project into an evidence-backed "
             "asset/package/repository plan."

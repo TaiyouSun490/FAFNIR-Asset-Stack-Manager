@@ -1,4 +1,4 @@
-# Stackforge Embedding RAG 残作業
+# Fafnir Embedding RAG 残作業
 
 最終更新: 2026-08-31
 
@@ -7,7 +7,7 @@
 RAGの導入・索引ライフサイクル、既定モデル取得、公開商品説明の差分反映まで
 実装・動作済み。残るのは実カタログの継続的な検索品質評価である。
 
-- Stackforgeバージョン: `0.5.0`
+- Fafnirバージョン: `0.5.0`
 - 既定モデル: `intfloat/multilingual-e5-small`
 - 固定リビジョン: `614241f622f53c4eeff9890bdc4f31cfecc418b3`
 - 所有アセットRAG文書: 1,584件
@@ -19,7 +19,7 @@ RAGの導入・索引ライフサイクル、既定モデル取得、公開商�
 - 通常動作: UI/MCP起動時に所有一覧を差分同期し、MCP終了後も残る独立プロセスで索引
 - 未完成時の検索: 所有アセットだけを`lexical_fallback`として返し、Dense結果とは明確に区別
 
-`stackforge_status`、`game-stack --json rag-status`、ローカルUIで、状態・モデル世代・
+`fafnir_status`、`fafnir --json rag-status`、ローカルUIで、状態・モデル世代・
 文書数・有効ベクトル数・coverage・エラーを確認できる。
 
 ## 実装済みの安全条件
@@ -48,7 +48,7 @@ RAGの導入・索引ライフサイクル、既定モデル取得、公開商�
 - 複数機能を含むクエリ
 - 該当アセットが存在しないクエリ
 
-初期閾値は`0.72`。評価結果に基づいて`STACKFORGE_RAG_MIN_SIMILARITY`を調整する。
+初期閾値は`0.72`。評価結果に基づいて`FAFNIR_RAG_MIN_SIMILARITY`を調整する。
 実モデル評価なしに既定値を固定完了扱いしない。
 
 ### 2. 実利用経路の継続確認

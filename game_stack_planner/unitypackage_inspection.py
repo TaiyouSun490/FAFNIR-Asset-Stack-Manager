@@ -21,7 +21,7 @@ MAX_ANALYZED_TOTAL_BYTES = 32 * 1024 * 1024
 
 
 class UnityPackageInspectionError(ValueError):
-    """The archive cannot be inspected within Stackforge's safety limits."""
+    """The archive cannot be inspected within Fafnir's safety limits."""
 
 
 @dataclass(frozen=True, slots=True)

@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>Stackforge — Unity Game Stack Planner</title>
+  <title>Fafnir — Asset Stack Manager</title>
+  <link rel="icon" href="/fafnir-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
 </head>
 <body>
   <div class="shell">
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Stackforge home">
-        <span class="brand-mark">SF</span>
-        <span><strong>STACKFORGE</strong><small>UNITY ASSET WORKBENCH</small></span>
+      <a class="brand" href="/" aria-label="Fafnir home">
+        <img class="brand-logo" src="/fafnir-logo-rune.svg" alt="Fafnir — Asset Stack Manager">
       </a>
       <nav class="tabs" aria-label="Main">
         <button class="tab active" data-view="planner">STACK</button>
@@ -26,7 +26,7 @@
       <section id="planner-view" class="view active">
         <div class="hero">
           <div>
-            <p class="eyebrow">STACKFORGE / STACK BUILDER</p>
+            <p class="eyebrow">FAFNIR / STACK BUILDER</p>
             <h1>実装構成</h1>
             <p class="lead">所有アセット優先。要件、互換性、導入状態から候補を選定。</p>
           </div>
@@ -130,7 +130,7 @@
 
       <section id="catalog-view" class="view">
         <div class="catalog-header">
-          <div><p class="eyebrow">STACKFORGE / ASSETS</p><h1>アセット</h1><p>所有、導入、互換性、外部候補を横断検索。</p></div>
+          <div><p class="eyebrow">FAFNIR / ASSET VAULT</p><h1>アセット</h1><p>所有、導入、互換性、外部候補を横断検索。</p></div>
           <button id="open-pin-button" class="button primary compact">＋ 候補を追加</button>
         </div>
         <div class="catalog-layout">
@@ -177,7 +177,7 @@
             <button id="catalog-search-button" class="button secondary">絞り込む</button>
             <section class="cache-import" aria-labelledby="my-assets-sync-title">
               <h3 id="my-assets-sync-title">Unity My Assets</h3>
-              <p>6時間ごとに自動同期。購入直後はUnityの Tools &gt; Stackforge &gt; My Assets Sync。</p>
+              <p>6時間ごとに自動同期。購入直後はUnityの Tools &gt; Fafnir &gt; My Assets Sync。</p>
               <label>同期ファイル（任意）<input id="my-assets-path" type="text" maxlength="2048" placeholder="標準のunity-my-assets.json"></label>
               <button id="sync-my-assets-button" class="button secondary">同期</button>
               <p id="my-assets-message" class="muted" role="status"></p>

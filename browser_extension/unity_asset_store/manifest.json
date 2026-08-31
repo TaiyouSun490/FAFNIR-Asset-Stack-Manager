@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Stackforge Asset Store Capture & RAG",
+  "name": "Fafnir Asset Store Capture & RAG",
   "version": "0.2.0",
-  "description": "Save Unity Asset Store candidates and explicitly register self-asserted purchased assets in the local Stackforge RAG index.",
+  "description": "Save Unity Asset Store candidates and explicitly register self-asserted purchased assets in the local Fafnir RAG index.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -23,7 +23,7 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "Stackforgeへ候補・購入済みRAG登録",
+    "default_title": "Fafnirへ候補・購入済みRAG登録",
     "default_popup": "popup.html"
   }
 }

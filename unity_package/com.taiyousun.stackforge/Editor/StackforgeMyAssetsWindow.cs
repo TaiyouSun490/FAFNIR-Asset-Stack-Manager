@@ -17,10 +17,10 @@ namespace Stackforge.Editor
 {
     internal sealed class StackforgeMyAssetsWindow : EditorWindow
     {
-        [MenuItem("Tools/Stackforge/My Assets Sync")]
+        [MenuItem("Tools/Fafnir/My Assets Sync")]
         private static void Open()
         {
-            GetWindow<StackforgeMyAssetsWindow>("Stackforge My Assets");
+            GetWindow<StackforgeMyAssetsWindow>("Fafnir My Assets");
         }
 
         private void OnEnable()
@@ -35,7 +35,7 @@ namespace Stackforge.Editor
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("Stackforge My Assets", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Fafnir My Assets", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
                 "Unity Editorでログイン中のMy Assetsから、商品ID・商品名・タグ・購入日時だけを取得します。認証トークン、商品本文、画像、アセット本体は出力しません。",
                 MessageType.Info);
@@ -74,7 +74,7 @@ namespace Stackforge.Editor
             if (StackforgeMyAssetsSync.lastCount >= 0)
                 EditorGUILayout.LabelField("取得件数", StackforgeMyAssetsSync.lastCount.ToString(CultureInfo.InvariantCulture));
 
-            if (GUILayout.Button("Stackforgeを開く"))
+            if (GUILayout.Button("Fafnirを開く"))
                 Application.OpenURL(
                     "http://127.0.0.1:8770/?view=catalog&scope=owned_assets&sync=my-assets");
         }
@@ -307,7 +307,7 @@ namespace Stackforge.Editor
                         Records[record.productId] = record;
                         pageCount++;
                         if (Records.Count > MaxAssets)
-                            throw new InvalidDataException("My Assets count exceeds the Stackforge safety limit.");
+                            throw new InvalidDataException("My Assets count exceeds the Fafnir safety limit.");
                     }
                 }
 
@@ -406,7 +406,7 @@ namespace Stackforge.Editor
             lastCount = Records.Count;
             status = _hiddenAssetsSkipped
                 ? "通常のMy Assetsを書き出しました。このUnity版では非表示商品の取得に対応していません。"
-                : "同期ファイルを書き出しました。Stackforgeの起動中または次回起動時に自動で取り込まれます。";
+                : "同期ファイルを書き出しました。Fafnirの起動中または次回起動時に自動で取り込まれます。";
             messageType = _hiddenAssetsSkipped ? MessageType.Warning : MessageType.Info;
             Notify();
         }

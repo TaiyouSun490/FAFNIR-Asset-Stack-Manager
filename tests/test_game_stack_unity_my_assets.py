@@ -251,6 +251,7 @@ class UnityBridgeStaticTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
         self.assertEqual("com.taiyousun.stackforge", package["name"])
+        self.assertEqual("Fafnir My Assets Bridge", package["displayName"])
         self.assertEqual(["Editor"], assembly["includePlatforms"])
         self.assertIn("IAssetStoreRestAPI", source)
         self.assertIn("stackforge.unity-my-assets.v1", source)
@@ -259,6 +260,7 @@ class UnityBridgeStaticTests(unittest.TestCase):
         self.assertIn("[InitializeOnLoad]", source)
         self.assertIn("automaticSyncIntervalHours", source)
         self.assertIn("EditorApplication.update += CheckAutomaticSync", source)
+        self.assertIn('MenuItem("Tools/Fafnir/My Assets Sync")', source)
         self.assertNotIn('RequireType("PageFilterStatus")', source)
         self.assertIn(
             "?view=catalog&scope=owned_assets&sync=my-assets",

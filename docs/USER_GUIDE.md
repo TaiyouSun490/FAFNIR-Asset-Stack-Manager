@@ -1,12 +1,21 @@
-# Stackforge 利用ガイド
+# Fafnir 利用ガイド
 
-Stackforgeは、Unityの所有アセットを起点に実装候補を組み立てるローカルツールです。
+Fafnirは、Unityの所有アセットを起点に実装候補を組み立てるローカルの
+**Asset Stack Manager**です。
+
+改名前からのDB、`game_stack_planner`、`game-stack-planner`データフォルダ、
+`com.taiyousun.stackforge` Unity package ID、`stackforge.*` schemaは互換性のため
+変更しません。既存環境の再同期やDB移行は不要です。
+
+同じPython環境に旧distributionが残る場合だけ、一度
+`python -m pip uninstall -y stackforge-unity`を実行してから
+`python -m pip install -e ".[dev]"`で入れ直します。
 Web UI、CLI、MCPの3つの入口は同じローカルカタログを使用します。
 
 ## 1. データの所在
 
-StackforgeのRAGはクラウド上の共有DBではありません。Stackforgeを実行したユーザーの
-PCに、Stackforge自身がSQLite DBとベクトル索引を作成します。
+FafnirのRAGはクラウド上の共有DBではありません。Fafnirを実行したユーザーの
+PCに、Fafnir自身がSQLite DBとベクトル索引を作成します。
 
 | データ | 既定の保存先 | Git管理 | AIクライアントへ送る内容 |
 | --- | --- | --- | --- |
@@ -24,7 +33,7 @@ DBはCodex用、Claude用に分かれているわけではありません。同�
 プロジェクト別に分離したい場合は、起動コマンドへグローバルオプション
 `--db C:\path\to\catalog.sqlite3`を追加してください。
 
-StackforgeはDB全体、ベクトル、認証情報、画像、`.unitypackage`の内容、ローカルパスを
+FafnirはDB全体、ベクトル、認証情報、画像、`.unitypackage`の内容、ローカルパスを
 MCP応答へ含めません。ただし、AIへ質問したときは、MCPツールが返した商品名、タグ、
 説明の抜粋、互換性、スコアなどの検索結果が、そのAIサービスへのモデル入力に含まれる
 場合があります。完全なオフライン利用にはCLIの`--offline`を使用し、外部AIへMCP接続
@@ -45,14 +54,14 @@ python -m pip install -e ".[dev]"
 動作確認:
 
 ```powershell
-game-stack --version
-game-stack --json rag-status
+fafnir --version
+fafnir --json rag-status
 ```
 
 ## 3. 最初の起動
 
 ```powershell
-game-stack ui
+fafnir ui
 ```
 
 既定では`http://127.0.0.1:8770/`を開きます。外部ネットワークには公開せず、loopback
@@ -60,7 +69,7 @@ game-stack ui
 
 初回起動時の処理:
 
-1. StackforgeがローカルSQLite DBを作成する。
+1. FafnirがローカルSQLite DBを作成する。
 2. Unity My Assets出力があれば差分を取り込む。
 3. 固定リビジョンの`intfloat/multilingual-e5-small`をローカルへ取得する。
 4. 所有アセットの文書とベクトル索引を作成する。
@@ -78,12 +87,12 @@ Unity Package Managerの **Add package from disk** で次を指定します。
 unity_package/com.taiyousun.stackforge/package.json
 ```
 
-Unity Editorで **Tools > Stackforge > My Assets Sync** を開きます。
+Unity Editorで **Tools > Fafnir > My Assets Sync** を開きます。
 
 - 既定ではUnity起動中に6時間ごとに同期する。
 - 新規購入直後は **My Assetsを同期** を押す。
-- Stackforge起動中なら変更を検知して差分索引する。
-- Stackforgeを閉じていた場合は次回起動時に取り込む。
+- Fafnir起動中なら変更を検知して差分索引する。
+- Fafnirを閉じていた場合は次回起動時に取り込む。
 
 Unityの認証トークンはエクスポートしません。My Assets出力に含むのは商品ID、表示名、
 タグ、購入・付与時刻、非表示状態、Unity版、出力時刻だけです。
@@ -105,49 +114,49 @@ Unity Projectを指定すると、Unity版、Render Pipeline、Input System、�
 
 ```powershell
 # プロジェクト解析
-game-stack scan C:\Projects\MyGame
+fafnir scan C:\Projects\MyGame
 
 # 所有アセット優先の構成
-game-stack recommend `
+fafnir recommend `
   --prompt "閉鎖された海底研究施設の一人称ホラー脱出ゲーム" `
   --project C:\Projects\MyGame `
   --platform pc `
   --budget owned_first
 
 # 保存済みカタログだけを使う
-game-stack recommend --prompt "鍵と暗証番号のパズル" --offline
+fafnir recommend --prompt "鍵と暗証番号のパズル" --offline
 
 # RAG状態と検索
-game-stack --json rag-status
-game-stack --json rag-search --query "浸水した通路の足音" --limit 10
+fafnir --json rag-status
+fafnir --json rag-search --query "浸水した通路の足音" --limit 10
 
 # My Assetsとローカルキャッシュ
-game-stack sync-my-assets
-game-stack scan-cache --inspect
+fafnir sync-my-assets
+fafnir scan-cache --inspect
 ```
 
 ## 7. Codexから使う
 
-Stackforgeはローカルstdio MCP serverとして動作します。Stackforge自体にOpenAI API keyは
+Fafnirはローカルstdio MCP serverとして動作します。Fafnir自体にOpenAI API keyは
 不要です。
 
 インストール済みコマンドを使う場合:
 
 ```powershell
-codex mcp add stackforge -- game-stack mcp
-codex mcp get stackforge
+codex mcp add fafnir -- fafnir mcp
+codex mcp get fafnir
 ```
 
 source checkoutを直接使う場合:
 
 ```powershell
-codex mcp add stackforge -- `
+codex mcp add fafnir -- `
   C:\path\to\stackforge\.venv\Scripts\python.exe `
   -m game_stack_planner mcp
 ```
 
 CodexのChatGPT desktop app、CLI、IDE extensionは同じCodex hostのMCP設定を共有します。
-設定後にクライアントを再起動し、`/mcp`またはMCP設定画面で`stackforge`を確認します。
+設定後にクライアントを再起動し、`/mcp`またはMCP設定画面で`fafnir`を確認します。
 
 公式資料: [OpenAI Codex MCP](https://developers.openai.com/codex/mcp)
 
@@ -156,14 +165,14 @@ CodexのChatGPT desktop app、CLI、IDE extensionは同じCodex hostのMCP設定
 インストール済みコマンドをユーザー単位で登録する場合:
 
 ```powershell
-claude mcp add --transport stdio --scope user stackforge -- game-stack mcp
-claude mcp get stackforge
+claude mcp add --transport stdio --scope user fafnir -- fafnir mcp
+claude mcp get fafnir
 ```
 
 source checkoutを直接使う場合:
 
 ```powershell
-claude mcp add --transport stdio --scope user stackforge -- `
+claude mcp add --transport stdio --scope user fafnir -- `
   C:\path\to\stackforge\.venv\Scripts\python.exe `
   -m game_stack_planner mcp
 ```
@@ -175,7 +184,7 @@ claude mcp add --transport stdio --scope user stackforge -- `
 ```json
 {
   "mcpServers": {
-    "stackforge": {
+    "fafnir": {
       "type": "stdio",
       "command": "C:\\path\\to\\stackforge\\.venv\\Scripts\\python.exe",
       "args": ["-m", "game_stack_planner", "mcp"]
@@ -195,12 +204,12 @@ claude mcp list
 ## 9. AIへの依頼例
 
 ```text
-Stackforgeを使い、所有アセット中心でこのゲームの実装構成を作って。
+Fafnirを使い、所有アセット中心でこのゲームの実装構成を作って。
 各候補の用途、互換性、不足機能、代替候補を分けて説明して。
 ```
 
 ```text
-Stackforgeで「浸水した通路の材質別足音」を検索して。
+Fafnirで「浸水した通路の材質別足音」を検索して。
 所有済みだけを対象にし、検索方式とスコアも示して。
 ```
 
@@ -211,7 +220,7 @@ Stackforgeで「浸水した通路の材質別足音」を検索して。
 
 AIが主に使用するMCP tools:
 
-- `stackforge_status`: DB、同期、RAG、商品詳細の状態
+- `fafnir_status`: DB、同期、RAG、商品詳細の状態
 - `search_owned_asset_rag`: 所有アセットの意味検索
 - `search_unity_assets`: 保存カタログの構造化検索
 - `retrieve_game_stack_evidence`: ゲーム要件から比較材料を取得
@@ -223,13 +232,13 @@ AIが主に使用するMCP tools:
 
 ## 10. RAG DBの構築主体
 
-構築するのは、CodexやClaudeのサービスではなくローカルで起動されたStackforge
+構築するのは、CodexやClaudeのサービスではなくローカルで起動されたFafnir
 プロセスです。
 
 ```text
 Unity My Assets / 手動候補 / 公開商品情報
                     ↓
-       Stackforge local process
+       Fafnir local process
                     ↓
  catalog.sqlite3: 文書 + 世代管理されたベクトル
                     ↓
@@ -244,24 +253,24 @@ UIとMCPは通常起動時に差分を検出し、必要な場合だけ索引wor
 
 ```powershell
 # UI
-game-stack --db D:\StackforgeData\project-a.sqlite3 ui
+fafnir --db D:\FafnirData\project-a.sqlite3 ui
 
 # Codex / Claude用MCPも同じ独立DBへ向ける
-game-stack --db D:\StackforgeData\project-a.sqlite3 mcp
+fafnir --db D:\FafnirData\project-a.sqlite3 mcp
 ```
 
 独立DBでは既定My Assetsファイルの自動取込を行わないため、必要なら明示的に同期します。
 
 ```powershell
-game-stack --db D:\StackforgeData\project-a.sqlite3 sync-my-assets `
+fafnir --db D:\FafnirData\project-a.sqlite3 sync-my-assets `
   --path "$env:LOCALAPPDATA\game-stack-planner\unity-my-assets.json"
 ```
 
 ## 11. 新しいアセットを購入した後
 
-1. Unity Editorの **Tools > Stackforge > My Assets Sync** で即時同期する。
-2. Stackforge UIまたはMCPを起動したまま待つか、後で起動する。
-3. `game-stack --json rag-status`で`ready`とcoverageを確認する。
+1. Unity Editorの **Tools > Fafnir > My Assets Sync** で即時同期する。
+2. Fafnir UIまたはMCPを起動したまま待つか、後で起動する。
+3. `fafnir --json rag-status`で`ready`とcoverageを確認する。
 4. 必要なら対象Unity Projectを指定して互換性を再評価する。
 
 通常は`rag-index`を手動実行する必要はありません。索引が失敗または中断した場合の修復に
@@ -281,9 +290,9 @@ Dense索引が100%未満です。検索自体は所有確認済み文書だけ�
 ### CodexまたはClaudeからtoolが見えない
 
 ```powershell
-game-stack mcp
-codex mcp get stackforge
-claude mcp get stackforge
+fafnir mcp
+codex mcp get fafnir
+claude mcp get fafnir
 ```
 
 最初のコマンドが起動したまま待機すればstdio server自体は正常です。終了は`Ctrl+C`。
@@ -291,7 +300,7 @@ claude mcp get stackforge
 
 ### DBをバックアップしたい
 
-Stackforge、Codex、ClaudeのStackforge MCPを終了してから、`catalog.sqlite3`と同じ名前の
+Fafnir、Codex、ClaudeのFafnir MCPを終了してから、`catalog.sqlite3`と同じ名前の
 `-wal`、`-shm`が存在する場合は3ファイルを一緒にコピーしてください。
 
 ## 13. Gitへ含まれないもの

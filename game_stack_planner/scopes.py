@@ -1,4 +1,4 @@
-"""Stable search lanes for the federated Stackforge catalog."""
+"""Stable search lanes for the federated Fafnir catalog."""
 
 from __future__ import annotations
 

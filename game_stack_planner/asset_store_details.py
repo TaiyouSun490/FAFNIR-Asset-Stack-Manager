@@ -162,7 +162,7 @@ def fetch_document(
         headers={
             "Accept": "text/html,application/xml;q=0.9,*/*;q=0.1",
             "Accept-Language": "en-US,en;q=0.8",
-            "User-Agent": "Stackforge/0.5 (+local Unity asset metadata sync)",
+            "User-Agent": "Fafnir/0.5 (+local Unity asset metadata sync)",
         },
         method="GET",
     )

@@ -30,10 +30,17 @@ if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
 
 if ([string]::IsNullOrWhiteSpace($HostExecutable)) {
     $hostCommand = Get-Command `
-        -Name 'game-stack-native-host.exe' `
+        -Name 'fafnir-native-host.exe' `
         -CommandType Application `
-        -ErrorAction Stop |
+        -ErrorAction SilentlyContinue |
         Select-Object -First 1
+    if ($null -eq $hostCommand) {
+        $hostCommand = Get-Command `
+            -Name 'game-stack-native-host.exe' `
+            -CommandType Application `
+            -ErrorAction Stop |
+            Select-Object -First 1
+    }
     $HostExecutable = $hostCommand.Source
 }
 $resolvedHostExecutable = (
@@ -67,7 +74,7 @@ foreach ($pathValue in @(
 
 $hostManifest = [ordered]@{
     name = $hostName
-    description = 'Stackforge Unity Asset Store candidate and owned RAG receiver'
+    description = 'Fafnir Unity Asset Store candidate and owned RAG receiver'
     path = $resolvedHostExecutable
     type = 'stdio'
     allowed_origins = @($allowedOrigin)
@@ -80,7 +87,7 @@ $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 if ($PSCmdlet.ShouldProcess(
     $absoluteInstallDirectory,
-    'Install the Stackforge Native Messaging host'
+    'Install the Fafnir Native Messaging host'
 )) {
     New-Item -ItemType Directory -Path $absoluteInstallDirectory -Force |
         Out-Null

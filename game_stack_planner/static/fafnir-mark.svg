@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">Fafnir rune mark</title>
+  <desc id="desc">An angular dragon head and the letter F inside a vault seal.</desc>
+  <path fill="#11151a" stroke="#ff6b3d" stroke-width="3" d="M18 8h45l15 14v47L64 85H28L12 70V25z"/>
+  <path fill="#ff6b3d" d="M27 25h38l-8 12H40v8h15l-7 11h-8v18H27z"/>
+  <path fill="#ff9a78" d="m62 9 18 1-12 9zM72 25l12 7-12 3z"/>
+  <path fill="#f1f2ed" d="m58 38 8 4-8 5-6-4z"/>
+  <circle cx="61.5" cy="42.5" r="1.8" fill="#0a0c0f"/>
+  <path fill="none" stroke="#ff6b3d" stroke-width="3" stroke-linecap="square" d="M61 54h12l-7 8h-9"/>
+</svg>

@@ -1,6 +1,6 @@
-# Game Stack Planner
+# Fafnir Asset Stack Manager
 
-Game Stack Planner（画面名: Stackforge）は、作りたいゲームの説明とローカルのUnityプロジェクトから、必要機能と実装候補を整理する独立ツールです。カタログはローカルのSQLiteデータベースへ保存します。
+Fafnir Asset Stack Managerは、作りたいゲームの説明とローカルのUnityプロジェクトから、必要機能と実装候補を整理する独立ツールです。カタログはローカルのSQLiteデータベースへ保存します。
 
 ## 起動
 
@@ -32,9 +32,9 @@ GUIでは次の順に使います。
 
 Unity Package Managerの「Add package from disk」で
 `unity_package/com.taiyousun.stackforge/package.json` を選びます。Unity Hub / Editorへ
-ログインした状態で `Tools > Stackforge > My Assets Sync` を開きます。既定ではUnity起動中に
+ログインした状態で `Tools > Fafnir > My Assets Sync` を開きます。既定ではUnity起動中に
 6時間ごとに同期し、画面で1〜168時間へ変更できます。購入直後は「My Assetsを同期」で即時更新
-できます。StackforgeのUIまたはMCPを起動しておけば、変更を検出して全件を
+できます。FafnirのUIまたはMCPを起動しておけば、変更を検出して全件を
 ローカルSQLiteとRAGへ差分登録します。非表示にした商品も別ページとして取得し、商品IDで
 重複を除きます。画面の「今すぐ同期を確認」は修復用で、通常の二度目の操作ではありません。
 
