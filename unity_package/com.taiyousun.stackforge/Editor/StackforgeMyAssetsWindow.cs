@@ -113,10 +113,7 @@ namespace Stackforge.Editor
         {
             get
             {
-                return Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "game-stack-planner",
-                    "unity-my-assets.json");
+                return Path.Combine(FafnirBridgeDiagnostics.RootPath, "unity-my-assets.json");
             }
         }
 
@@ -132,6 +129,7 @@ namespace Stackforge.Editor
 
         static StackforgeMyAssetsSync()
         {
+            if (Application.isBatchMode) return;
             _nextAutomaticCheck = EditorApplication.timeSinceStartup + 15.0;
             EditorApplication.update += CheckAutomaticSync;
         }
@@ -404,6 +402,7 @@ namespace Stackforge.Editor
             }
             isRunning = false;
             lastCount = Records.Count;
+            FafnirBridgeDiagnostics.RecordSyncSuccess(lastCount);
             status = _hiddenAssetsSkipped
                 ? "通常のMy Assetsを書き出しました。このUnity版では非表示商品の取得に対応していません。"
                 : "同期ファイルを書き出しました。Fafnirの起動中または次回起動時に自動で取り込まれます。";

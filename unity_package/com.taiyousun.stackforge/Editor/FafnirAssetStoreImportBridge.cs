@@ -14,8 +14,7 @@ namespace Stackforge.Editor
     internal static class FafnirAssetStoreImportBridge
     {
         private const string SessionKey = "Fafnir.ActiveImport";
-        private static readonly string Root = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "game-stack-planner");
+        private static readonly string Root = FafnirBridgeDiagnostics.RootPath;
         private static readonly string CommandPath = Path.Combine(Root, "unity-import-command.json");
         private static Command _active;
         private static double _nextPoll;
@@ -23,6 +22,7 @@ namespace Stackforge.Editor
 
         static FafnirAssetStoreImportBridge()
         {
+            if (Application.isBatchMode) return;
             string saved = SessionState.GetString(SessionKey, "");
             if (!string.IsNullOrEmpty(saved))
             {

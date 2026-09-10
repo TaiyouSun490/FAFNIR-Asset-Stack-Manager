@@ -29,9 +29,7 @@ namespace Stackforge.Editor
         private const int ErrorState = 1024;
         private const int JsonWriteAttempts = 6;
 
-        private static readonly string RootPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "game-stack-planner");
+        private static readonly string RootPath = FafnirBridgeDiagnostics.RootPath;
         private static readonly string CommandPath = Path.Combine(
             RootPath, "unity-download-command.json");
         private static readonly string StatusPath = Path.Combine(
@@ -52,6 +50,8 @@ namespace Stackforge.Editor
 
         static FafnirAssetStoreDownloadBridge()
         {
+            // CI/temporary compile projects must not consume real interactive jobs.
+            if (Application.isBatchMode) return;
             _nextCommandCheck = EditorApplication.timeSinceStartup + 1.0;
             _nextHeartbeat = 0.0;
             EditorApplication.update += Update;
@@ -378,7 +378,13 @@ namespace Stackforge.Editor
                 accountState = ReadAccountState(),
                 busy = EditorApplication.isCompiling || _active != null || FafnirAssetStoreImportBridge.IsBusy,
                 projectPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..")),
-                supportsImportDialog = true
+                supportsImportDialog = true,
+                bridgeVersion = FafnirBridgeDiagnostics.Version,
+                bridgeContentHash = FafnirBridgeDiagnostics.ContentHash,
+                compilationState = FafnirBridgeDiagnostics.CompilationState,
+                syncState = FafnirBridgeDiagnostics.SyncState,
+                syncCount = FafnirBridgeDiagnostics.SyncCount,
+                syncSuccessAtUtc = FafnirBridgeDiagnostics.SyncTime
             };
             try
             {
@@ -537,6 +543,12 @@ namespace Stackforge.Editor
             public bool busy;
             public string projectPath;
             public bool supportsImportDialog;
+            public string bridgeVersion;
+            public string bridgeContentHash;
+            public string compilationState;
+            public string syncState;
+            public int syncCount;
+            public string syncSuccessAtUtc;
         }
     }
 }

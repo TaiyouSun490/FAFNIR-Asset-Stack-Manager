@@ -152,6 +152,12 @@ MCPで主に使用するtool:
 
 ## データはどこに保存され、何がAIへ渡るか
 
+Unityブリッジの導入・更新は、対象Projectを指定して
+diagnose_unity_bridge → prepare_unity_bridge_install → 差分承認 →
+apply_reviewed_unity_bridge_install で行えます。MCP接続だけではUnityへの導入済みとは
+判定しません。[導入・診断・復元手順](docs/UNITY_BRIDGE_SETUP.md)を参照してください。
+ブリッジは配布物に同梱され、開発者個人の絶対パスには依存しません。
+
 | データ | 既定の保存先 | AI clientへ送る内容 |
 | --- | --- | --- |
 | カタログ、RAG文書、ベクトル | `%LOCALAPPDATA%\game-stack-planner\catalog.sqlite3` | 検索に一致した候補の限定メタデータのみ |
@@ -159,7 +165,9 @@ MCPで主に使用するtool:
 | Embedding model | Hugging Faceのローカルcache | 送信しない |
 | `.unitypackage`内容 | Unityのローカルcache | 絶対path、source本文、binaryを送信しない |
 
-DB全体、ベクトル、認証情報、ローカルpath、画像、レビュー本文はMCP応答へ含めません。
+DB全体、ベクトル、認証情報はMCP応答へ含めません。
+ブリッジ導入・診断の応答には、確認に必要な対象Projectのローカルpath、差分、
+ファイルhash、一回限りの承認値が含まれます。公開issueやPRへ転記しないでください。
 ただし、MCPが返した商品名、tag、説明の抜粋、互換性、scoreは、接続先AI serviceのmodel入力に
 含まれる場合があります。完全なoffline利用にはCLIの`--offline`を使い、外部AIへ接続しないでください。
 

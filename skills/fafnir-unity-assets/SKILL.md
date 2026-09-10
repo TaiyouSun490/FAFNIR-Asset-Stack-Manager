@@ -45,13 +45,28 @@ Treat a search result as a repository lead, not an installable package. Inspect 
 
 ### Unity Asset Store
 
+#### Project bridge setup
+
+MCP connectivity is separate from Unity bridge installation. If the bridge reports offline
+and a target project is known, call diagnose_unity_bridge with that exact path.
+Do not equate offline with missing or another project's heartbeat with target validation.
+For setup/update, call prepare_unity_bridge_install, show its project, fixed version,
+file hashes and manifest diff, and call apply_reviewed_unity_bridge_install
+only after the user approves that exact plan and closes the target Editor.
+Keep the rollback nonce. Call get_unity_bridge_install_status after the user opens
+that project and runs Tools > Fafnir > My Assets Sync. Require diagnosis.setup_verified,
+then inspect fafnir_status for catalog import; unknown is not Passed.
+Use rollback_unity_bridge_install for an authorized rollback. Changed files require
+reconciliation, not forced retries. Reusing a connected bridge for global-cache
+download alone does not require switching to the target project.
+
 For confirmed-owned items, call `prepare_owned_asset_download` with their exact candidate IDs. Review the returned titles, product IDs, versions, sizes, cache state, and Unity bridge state. If `requires_approval` is false, every selected package is already cached, so do not start another download. Otherwise, if the user's current message explicitly requested those exact products, that is sufficient approval when the plan matches; show the plan and wait for approval in all other cases. Then call `start_reviewed_asset_download` with the returned plan ID and one-time nonce.
 
 Poll `get_asset_store_download_status` until every product is completed or a concrete error is returned. The local Unity Editor bridge performs the authenticated Package Manager download and writes only progress and cache paths back to Fafnir. It downloads to Unity's global cache and does not import into the open project.
 
 Use `bridge.readiness` and `next_action` to minimize user steps. Reuse a connected bridge without requesting a project switch, reopening My Assets, or a fresh login. `signed_in` is an Editor session hint, not proof that an Asset Store request will succeed; `unknown` is not evidence of logout. For `sign_in_required` or job `error_code=unity_authentication_required`, ask only to restore the account session in the bridge Editor via Unity Hub/My Assets. For `busy`, wait instead of restarting Unity. Report `starting` as waiting for Unity, not active transfer. Opening the destination is needed for actual Unity import/compilation, not cache acquisition. An import from a valid cached package needs no new Asset Store login.
 
-Do not take control of a browser, request browser-session sharing, or ask the user to click Download merely to acquire an owned package. If the bridge reports offline, ask the user to open a Unity project that already contains the Fafnir bridge; do not silently add it to an unrelated project. Fafnir and the bridge must not extract browser data, Unity account credentials, or session values. Unity's internal download adapter must fail closed when the Editor version is unsupported.
+Do not take control of a browser, request browser-session sharing, or ask the user to click Download merely to acquire an owned package. If no target project is known and the bridge reports offline, ask which project should host it; do not silently add it to an unrelated project. Fafnir and the bridge must not extract browser data, Unity account credentials, or session values. Unity's internal download adapter must fail closed when the Editor version is unsupported.
 
 If an item is already linked to a cached `.unitypackage`, do not download it again. Call `validate_cached_asset_for_project` before proposing import; enable its temporary compile test only when that extra validation is warranted.
 

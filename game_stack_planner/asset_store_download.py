@@ -17,6 +17,7 @@ from .local_asset_validation import (
     resolve_cached_package_path,
 )
 from .repository import StackRepository
+from .bridge_paths import default_bridge_root
 
 
 _APPROVAL_TTL = timedelta(minutes=10)
@@ -31,12 +32,6 @@ class AssetStoreDownloadError(RuntimeError):
         super().__init__(message)
         self.status = status
         self.code = code
-
-
-def default_bridge_root() -> Path:
-    base = os.getenv("LOCALAPPDATA") or os.getenv("APPDATA")
-    root = Path(base) if base else Path.home() / ".local" / "share"
-    return root / "game-stack-planner"
 
 
 def _now() -> datetime:

@@ -65,6 +65,13 @@ fafnir --version
 
 ### Sync Unity My Assets
 
+For project-specific setup/update, use diagnose_unity_bridge and
+prepare_unity_bridge_install, review the exact project and diff, then call
+apply_reviewed_unity_bridge_install after approval with the target Editor closed.
+The bridge is bundled; no developer checkout is required.
+See [setup, verification and rollback](docs/UNITY_BRIDGE_SETUP.md).
+An MCP connection alone does not prove installation or compilation in Unity.
+
 In Unity Package Manager, choose **Add package from disk** and select:
 
 ```text
@@ -150,10 +157,14 @@ Primary MCP tools:
 | Embedding model | Local Hugging Face cache | Never |
 | Cached `.unitypackage` content | Unity's local cache | No absolute paths, source bodies, or binaries |
 
-The full database, vectors, credentials, local paths, images, and review text are not included in MCP
+The full database, vectors and credentials are not included in MCP
 responses. Retrieved product names, tags, description excerpts, compatibility evidence, and scores may
 become part of the connected AI service's model input. Use CLI `--offline` without an external AI
 connection when that is not acceptable.
+
+Bridge setup/diagnosis responses include the reviewed local project path, file
+hashes, manifest diff and one-time approval values. Do not publish them in issues
+or PRs.
 
 ## Current limits
 
