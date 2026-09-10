@@ -100,6 +100,12 @@ Dense検索として使用することはありません。完成までは`lexic
 
 ## 4. Unity所有アセットを同期
 
+新規Projectへの導入・更新は、MCPの診断 → 導入計画 → 差分承認 → 適用、またはCLIの
+bridge-doctor / bridge-plan / bridge-apply を利用できます。
+対象Editorを閉じて適用し、起動後のコンパイルとMy Assets同期まで確認します。
+[診断・導入・復元手順](UNITY_BRIDGE_SETUP.md)を参照してください。
+以下はソースから手動導入する場合の手順です。
+
 Unity Package Managerの **Add package from disk** で次を指定します。
 
 ```text

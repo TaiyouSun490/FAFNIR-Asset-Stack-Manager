@@ -1,6 +1,6 @@
 {
   "name": "com.taiyousun.stackforge",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "displayName": "Fafnir My Assets Bridge",
   "description": "Exports minimal My Assets metadata and runs approval-gated owned-asset downloads through the authenticated Unity Editor.",
   "unity": "2022.3",

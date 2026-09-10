@@ -8,6 +8,12 @@ It does not export credentials, page content, images, or asset contents.
 
 ## Use
 
+Fafnir's project-aware installer can embed this pinned package after displaying
+a reviewable manifest/file plan. Start with bridge-doctor and bridge-plan,
+close the target Editor before an approved bridge-apply, then open the project
+and sync below. Diagnose again to verify actual compiler/sync evidence.
+The manual installation option below remains available.
+
 1. In Unity Package Manager, choose **Add package from disk** and select this
    directory's `package.json`.
 2. Sign in to Unity Hub / Unity Editor.
@@ -27,3 +33,7 @@ The package uses a runtime reflection adapter over Unity's undocumented
 internal Package Manager service. If Unity changes that service, Fafnir
 will fail closed and show an error instead of attempting to access credentials
 directly.
+
+Set the same absolute FAFNIR_BRIDGE_ROOT for both processes to isolate bridge
+files and the My Assets export. This does not move Unity's download cache.
+Batch-mode Editors do not automatically handle interactive jobs or sync.

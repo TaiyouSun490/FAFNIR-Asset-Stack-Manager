@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from .bridge_paths import default_bridge_root
 
 SCHEMA = "stackforge.unity-my-assets.v1"
 MAX_EXPORT_BYTES = 8 * 1024 * 1024
@@ -34,9 +35,7 @@ class UnityMyAssetsExport:
 
 
 def default_export_path() -> Path:
-    base = os.getenv("LOCALAPPDATA") or os.getenv("APPDATA")
-    root = Path(base) if base else Path.home() / ".local" / "share"
-    return root / "game-stack-planner" / "unity-my-assets.json"
+    return default_bridge_root() / "unity-my-assets.json"
 
 
 def _short_text(value: Any, *, name: str, maximum: int) -> str:

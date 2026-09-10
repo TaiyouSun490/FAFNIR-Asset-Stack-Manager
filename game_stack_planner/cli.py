@@ -212,6 +212,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     install_rollback.add_argument("job_id")
     install_rollback.add_argument("--rollback-nonce", required=True)
+    for command in ("bridge-doctor", "bridge-plan"):
+        bridge = subparsers.add_parser(command, help="Diagnose or prepare reviewed Unity bridge setup.")
+        bridge.add_argument("--project", required=True)
+    bridge_apply = subparsers.add_parser("bridge-apply", help="Apply an exact reviewed bridge plan; target Unity must be closed.")
+    bridge_apply.add_argument("plan_id")
+    bridge_apply.add_argument("--approval-nonce", required=True)
+    bridge_status = subparsers.add_parser("bridge-status", help="Read bridge setup job and live verification evidence.")
+    bridge_status.add_argument("job_id")
+    bridge_rollback = subparsers.add_parser("bridge-rollback", help="Restore an unchanged bridge installation with its one-shot approval.")
+    bridge_rollback.add_argument("job_id")
+    bridge_rollback.add_argument("--rollback-nonce", required=True)
     return parser
 
 
@@ -312,6 +323,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "cache_path": args.cache_path or "",
                 "compile": bool(args.compile),
             })
+        elif args.command in ("bridge-doctor", "bridge-plan"):
+            result = app.manage_unity_bridge(
+                "diagnose" if args.command == "bridge-doctor" else "prepare",
+                {"project_path": args.project})
+        elif args.command == "bridge-apply":
+            result = app.manage_unity_bridge("apply", {
+                "plan_id": args.plan_id, "approval_nonce": args.approval_nonce})
+        elif args.command == "bridge-status":
+            result = app.manage_unity_bridge("get", {"job_id": args.job_id})
+        elif args.command == "bridge-rollback":
+            result = app.manage_unity_bridge("rollback", {
+                "job_id": args.job_id, "rollback_nonce": args.rollback_nonce})
         elif args.command == "install-plan":
             result = app.prepare_install({
                 "candidate_id": args.candidate_id,

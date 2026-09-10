@@ -138,6 +138,27 @@ class StackforgeMcpTools:
             ),
         }
 
+    def diagnose_unity_bridge(self, project_path: str) -> dict[str, Any]:
+        return self._bridge("diagnose", {"project_path": project_path})
+
+    def prepare_unity_bridge_install(self, project_path: str) -> dict[str, Any]:
+        return self._bridge("prepare", {"project_path": project_path})
+
+    def apply_reviewed_unity_bridge_install(self, plan_id: str, approval_nonce: str) -> dict[str, Any]:
+        return self._bridge("apply", {"plan_id": plan_id, "approval_nonce": approval_nonce})
+
+    def get_unity_bridge_install_status(self, job_id: str) -> dict[str, Any]:
+        return self._bridge("get", {"job_id": job_id})
+
+    def rollback_unity_bridge_install(self, job_id: str, rollback_nonce: str) -> dict[str, Any]:
+        return self._bridge("rollback", {"job_id": job_id, "rollback_nonce": rollback_nonce})
+
+    def _bridge(self, action: str, payload: dict[str, Any]) -> dict[str, Any]:
+        try:
+            return self.app.manage_unity_bridge(action, payload)
+        except ApiError as exc:
+            raise _api_error(exc) from exc
+
     def search_catalog(
         self,
         query: str = "",
@@ -569,13 +590,31 @@ def build_mcp_server(
             openWorldHint=False,
         ),
     )(tools.validate_cached_asset_for_project)
+    for name, description, readonly, destructive in (
+        ("diagnose_unity_bridge",
+         "Inspect the exact target project's bridge files, version, live Editor identity, compiler state and My Assets sync. Offline is not proof of missing installation. No project writes.", True, False),
+        ("prepare_unity_bridge_install",
+         "Prepare a pinned, bundled MIT Unity bridge install/update for an explicit project. Returns exact file hashes, manifest diff, risks and one-time approval. Does not alter the project. Show the plan and request approval.", False, False),
+        ("apply_reviewed_unity_bridge_install",
+         "Apply the exact user-approved bridge setup plan. Close target Unity first. Refuses changed files or edited unmanaged packages. Returns recovery status and a one-time rollback nonce. Installation is not verification.", False, True),
+        ("get_unity_bridge_install_status",
+         "Read a bridge setup job and current project-scoped verification. Unknown compilation or missing sync is not passed. Does not download or import assets.", True, False),
+        ("rollback_unity_bridge_install",
+         "Restore only the reviewed bridge files and manifest using the one-time rollback approval, with target Unity closed. Refuses subsequent changes. Cannot undo Editor-code side effects.", False, True),
+    ):
+        server.tool(name=name, description=description, annotations=ToolAnnotations(
+            readOnlyHint=readonly, destructiveHint=destructive,
+            idempotentHint=readonly, openWorldHint=False))(getattr(tools, name))
+
     server.tool(
         name="prepare_owned_asset_download",
         description=(
             "Prepare a bounded download plan for Asset Store candidates whose ownership "
             "was verified by the logged-in Unity Editor. It does not download or import. "
             "Use bridge readiness and next_action. Reuse a connected Editor without asking "
-            "to switch projects or open My Assets; downloads use the shared Unity cache."
+            "to switch projects or open My Assets; downloads use the shared Unity cache. "
+            "When offline and a target project is known, use diagnose_unity_bridge before "
+            "assuming a missing installation or asking the user to open another project."
         ),
         annotations=ToolAnnotations(
             readOnlyHint=False,

@@ -27,6 +27,7 @@ from .asset_store_details import (
     resolve_product_urls,
 )
 from .install_service import InstallCoordinator, InstallCoordinatorError
+from .bridge_setup import BridgeSetupCoordinator
 from .local_asset_validation import (
     LocalAssetValidationError,
     resolve_cached_package_path,
@@ -132,6 +133,7 @@ class GameStackApplication:
         self.installer = InstallCoordinator(self.repository)
         self.asset_store_downloader = AssetStoreDownloadCoordinator(self.repository)
         self.asset_store_importer = AssetStoreImportCoordinator(self.asset_store_downloader)
+        self.unity_bridge = BridgeSetupCoordinator(self.repository)
         self._automatic_rag_indexing = False
         self._rag_thread_lock = threading.Lock()
         self._rag_cancel = threading.Event()
@@ -440,6 +442,7 @@ class GameStackApplication:
             "catalog": self.repository.summary(),
             "capabilities": {
                 "unity_project_scan": True,
+                "unity_bridge_project_setup": True,
                 "github_search": True,
                 "openupm_search": True,
                 "asset_store_official_links": True,
@@ -872,6 +875,26 @@ class GameStackApplication:
             raise ApiError(422, "invalid_unity_project", str(exc)) from exc
         except ValueError as exc:
             raise ApiError(400, "invalid_request", str(exc)) from exc
+
+    def manage_unity_bridge(self, action: str, payload: dict[str, Any]) -> dict[str, Any]:
+        fields = {
+            "diagnose": ("project_path",), "prepare": ("project_path",),
+            "apply": ("plan_id", "approval_nonce"), "get": ("job_id",),
+            "rollback": ("job_id", "rollback_nonce"),
+        }
+        if action not in fields:
+            raise ApiError(400, "invalid_request", "Unknown bridge setup action.")
+        _only_fields(payload, set(fields[action]))
+        values = {key: _text(payload.get(key), name=key, required=True,
+                            maximum=2048 if key == "project_path" else 256)
+                  for key in fields[action]}
+        method = getattr(self.unity_bridge, "execute" if action == "apply" else action)
+        try:
+            return method(**values)
+        except InstallCoordinatorError as exc:
+            raise ApiError(exc.status, exc.code, str(exc)) from exc
+        except (OSError, ValueError) as exc:
+            raise ApiError(422, "bridge_setup_error", str(exc)) from exc
 
     def prepare_install(self, payload: dict[str, Any]) -> dict[str, Any]:
         _only_fields(payload, {"candidate_id", "project_path"})
