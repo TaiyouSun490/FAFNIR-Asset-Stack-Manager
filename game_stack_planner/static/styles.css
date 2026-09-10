@@ -40,8 +40,8 @@ a { color: inherit; }
 .shell { min-height: 100vh; }
 
 .topbar {
-  height: 76px;
-  padding: 0 clamp(18px, 3vw, 48px);
+  min-height: 140px;
+  padding: 7px clamp(18px, 3vw, 48px);
   display: flex;
   align-items: center;
   gap: 28px;
@@ -67,32 +67,9 @@ a { color: inherit; }
   mask-image: linear-gradient(90deg, #000, transparent);
 }
 .topbar::after { content: ""; position: absolute; left: 0; bottom: -1px; width: min(36vw, 460px); height: 2px; background: linear-gradient(90deg, var(--accent) 0 24%, rgba(255,107,61,.28) 24% 68%, transparent); }
-.brand { position: relative; z-index: 1; color: inherit; display: flex; align-items: center; gap: 14px; min-width: 268px; text-decoration: none; }
-.brand-emblem {
-  position: relative;
-  width: 43px;
-  height: 43px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  color: var(--ink);
-  border: 1px solid var(--accent);
-  background: linear-gradient(145deg, rgba(255,107,61,.16), rgba(255,107,61,.025));
-  clip-path: polygon(0 0, 82% 0, 100% 18%, 100% 100%, 18% 100%, 0 82%);
-  box-shadow: inset 0 0 0 4px rgba(10,12,15,.85);
-}
-.brand-emblem::before,
-.brand-emblem::after { content: ""; position: absolute; pointer-events: none; }
-.brand-emblem::before { inset: 5px; border-top: 1px solid rgba(255,154,120,.55); border-left: 1px solid rgba(255,154,120,.3); }
-.brand-emblem::after { width: 6px; height: 6px; right: 6px; bottom: 6px; background: var(--accent); box-shadow: -27px -27px 0 rgba(255,154,120,.5); }
-.brand-emblem b { font: 900 21px/1 "Bahnschrift SemiCondensed", "Arial Narrow", sans-serif; transform: skewX(-7deg); }
-.brand-emblem i { position: absolute; width: 17px; height: 2px; left: 13px; bottom: 9px; background: var(--accent); transform: skewX(-20deg); }
-.brand-lockup { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 9px; }
-.brand-overline { grid-column: 1 / -1; margin-bottom: 4px; color: var(--accent-soft); font: 700 7px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .19em; }
-.brand-lockup strong { font: 800 19px/.9 "Bahnschrift SemiCondensed", "Arial Narrow", sans-serif; letter-spacing: .22em; }
-.brand-lockup strong em { color: var(--accent); font-style: normal; }
-.brand-lockup small { color: var(--dim); font: 700 7px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: .12em; white-space: nowrap; }
-.tabs { height: 100%; display: flex; margin-left: auto; }
+.brand { position: relative; z-index: 1; flex: 0 0 auto; display: block; color: inherit; text-decoration: none; }
+.brand-logo { display: block; width: clamp(220px, 19vw, 260px); height: auto; filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .32)); }
+.tabs { align-self: stretch; display: flex; margin-left: auto; }
 .tab {
   position: relative;
   min-width: 104px;
@@ -259,7 +236,7 @@ textarea:focus, input:focus, select:focus { border-color: var(--accent); box-sha
 .catalog-header h1 { font-size: clamp(30px, 3.4vw, 45px); }
 .catalog-header > div > p:last-child { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
 .catalog-layout { max-width: 1480px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 62px) 80px; display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
-.filters { padding: 17px; position: sticky; top: 92px; max-height: calc(100vh - 108px); overflow: auto; box-shadow: none; }
+.filters { padding: 17px; position: sticky; top: 156px; max-height: calc(100vh - 172px); overflow: auto; box-shadow: none; }
 .filters > label:first-of-type { margin-top: 16px; }
 .filters .button { width: 100%; margin-top: 13px; }
 .rag-summary { padding: 2px 0 16px; border-bottom: 1px solid var(--line); }
@@ -309,6 +286,25 @@ dialog form { padding: 25px; }
 .purchase-confirmation span, .purchase-confirmation strong, .purchase-confirmation small { display: block; }
 .purchase-confirmation small { margin-top: 3px; color: var(--muted); font-weight: 400; line-height: 1.45; }
 .candidate-actions { margin-top: 9px; }
+.asset-buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.asset-buttons .install-action-button { min-height: 36px; padding: 8px 10px; font-size: 12px; }
+.catalog-card > p { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.asset-thumbnail { display: grid; place-items: center; width: 100%; aspect-ratio: 16/9; min-height: 52px; padding: 0; margin: 0 0 12px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; overflow: hidden; }
+.asset-thumbnail img { display: block; width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #101419; }
+.asset-thumbnail span { display: block; padding: 14px; }
+.asset-thumbnail > * { grid-area: 1 / 1; }
+.asset-detail-dialog { width: min(880px, calc(100% - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; }
+.asset-detail-content { padding: 24px; }
+.asset-detail-content h2 { font-size: 22px; overflow-wrap: anywhere; }
+.asset-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px; margin: 16px 0; }
+.asset-gallery img { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #101419; }
+.asset-description { white-space: pre-wrap; max-height: 180px; overflow-y: auto; }
+.asset-project-label { display: block; margin: 24px 0 12px; }
+.asset-project-label input { width: 100%; margin-top: 8px; }
+.asset-operation-status { white-space: pre-wrap; overflow-wrap: anywhere; }
+.asset-detail-content progress { width: 100%; margin-bottom: 16px; }
+.asset-image-setting { display: flex; align-items: center; gap: 6px; font-size: 11px; white-space: nowrap; }
+.asset-image-setting input { width: auto; }
 .install-action-button { padding: 6px 9px; border: 1px solid #4a3b35; color: var(--accent-soft); background: #1c1512; cursor: pointer; font-size: 9px; font-weight: 750; }
 .install-action-button:hover { border-color: var(--accent); background: #281812; }
 .install-action-button:disabled { border-color: var(--line); color: var(--dim); background: #13171c; cursor: default; }
@@ -364,14 +360,11 @@ dialog form { padding: 25px; }
   .recommendation-lanes { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
-  .topbar { gap: 8px; padding: 0 13px; }
-  .brand { min-width: 0; gap: 9px; }
-  .brand-emblem { width: 35px; height: 35px; }
-  .brand-emblem b { font-size: 17px; }
-  .brand-emblem i { left: 10px; bottom: 7px; }
-  .brand-lockup { display: block; }
-  .brand-overline, .brand-lockup small { display: none; }
-  .brand-lockup strong { font-size: 14px; }
+  .topbar { min-height: 0; gap: 6px; padding: 6px 10px 0; flex-wrap: wrap; }
+  .brand { flex: 1 1 auto; }
+  .brand-logo { width: 190px; max-width: 62vw; }
+  .tabs { order: 3; width: 100%; height: 42px; margin-left: 0; border-top: 1px solid rgba(41, 48, 56, .72); }
+  .tab { flex: 1 1 50%; }
   .health span { display: none; }
   .tab { min-width: 0; padding: 0 10px; }
   .hero { padding-top: 30px; }

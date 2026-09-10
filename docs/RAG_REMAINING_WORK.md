@@ -1,5 +1,7 @@
 # Fafnir Embedding RAG 残作業
 
+> 対象: maintainer向けの実装・評価status。一般利用者向けの操作手順ではありません。
+
 最終更新: 2026-08-31
 
 ## 現在の状態

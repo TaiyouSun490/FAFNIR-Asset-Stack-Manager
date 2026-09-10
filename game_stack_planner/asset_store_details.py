@@ -21,6 +21,7 @@ import xml.etree.ElementTree as ET
 
 
 ASSET_STORE_HOST = "assetstore.unity.com"
+ASSET_STORE_CDN_HOST = "assetstorev1-prd-cdn.unity3d.com"
 SITEMAP_INDEX_URL = f"https://{ASSET_STORE_HOST}/sitemap.xml"
 DETAIL_SCHEMA = "stackforge.asset-store-product-details.v1"
 MAX_PRODUCT_PAGE_BYTES = 4 * 1024 * 1024
@@ -297,6 +298,54 @@ def _finite_float(value: Any) -> float | None:
     return result if result == result and result not in {float("inf"), -float("inf")} else None
 
 
+def _public_media_url(value: Any) -> str:
+    raw = _bounded_string(value, 2048)
+    if raw.startswith("//"):
+        raw = "https:" + raw
+    parsed = urlparse(raw)
+    try:
+        port = parsed.port
+    except ValueError:
+        return ""
+    if (
+        parsed.scheme != "https"
+        or (parsed.hostname or "").casefold() != ASSET_STORE_CDN_HOST
+        or parsed.username
+        or parsed.password
+        or port not in {None, 443}
+    ):
+        return ""
+    return parsed._replace(fragment="").geturl()
+
+
+def _product_visuals(product: Mapping[str, Any]) -> dict[str, Any]:
+    main = product.get("mainImage")
+    main = main if isinstance(main, dict) else {}
+    main_url = _public_media_url(main.get("big") or main.get("small"))
+    gallery: list[dict[str, str]] = []
+    raw_images = product.get("images")
+    if isinstance(raw_images, list):
+        for raw in raw_images[:32]:
+            if not isinstance(raw, dict):
+                continue
+            kind = _bounded_string(raw.get("type"), 40).casefold()
+            image_url = _public_media_url(raw.get("imageUrl"))
+            thumbnail_url = _public_media_url(raw.get("thumbnailUrl"))
+            display_url = image_url or thumbnail_url
+            if not display_url:
+                continue
+            gallery.append({
+                "type": kind or "image",
+                "image_url": display_url,
+                "thumbnail_url": thumbnail_url,
+            })
+    return {
+        "main_image_url": main_url,
+        "gallery": gallery,
+        "image_count": int(bool(main_url)) + len(gallery),
+    }
+
+
 def _unity_key(value: str) -> tuple[int, ...]:
     numbers = re.findall(r"\d+", value)
     return tuple(int(item) for item in numbers[:4]) or (10**9,)
@@ -475,6 +524,7 @@ def parse_product_page(
             "count": _positive_int(rating.get("count")),
             "review_count": _positive_int(product.get("reviewCount")),
         },
+        "visuals": _product_visuals(product),
     }
     return result
 
@@ -504,6 +554,7 @@ def polite_delay(seconds: float = DEFAULT_FETCH_DELAY_SECONDS) -> None:
 
 __all__ = [
     "ASSET_STORE_HOST",
+    "ASSET_STORE_CDN_HOST",
     "AssetStoreDetailsError",
     "DEFAULT_FETCH_DELAY_SECONDS",
     "DETAIL_SCHEMA",

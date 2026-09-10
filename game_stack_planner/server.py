@@ -49,7 +49,7 @@ class PlannerHandler(BaseHTTPRequestHandler):
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self'; "
-            "img-src 'self' data:; connect-src 'self'; object-src 'none'; "
+            "img-src 'self' data: https://assetstorev1-prd-cdn.unity3d.com; connect-src 'self'; object-src 'none'; "
             "base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
         )
 
@@ -164,6 +164,10 @@ class PlannerHandler(BaseHTTPRequestHandler):
                     query=query.get("q", [""])[0],
                     limit=query.get("limit", ["20"])[0],
                 ))
+            elif parsed.path.startswith("/api/install/asset-store/download/jobs/"):
+                self._send_json(200, self.app.asset_store_download_job(unquote(parsed.path.rsplit("/", 1)[-1])))
+            elif parsed.path.startswith("/api/install/asset-store/import/jobs/"):
+                self._send_json(200, self.app.asset_import_job(unquote(parsed.path.rsplit("/", 1)[-1])))
             elif parsed.path.startswith("/api/install/jobs/"):
                 job_id = unquote(parsed.path.removeprefix("/api/install/jobs/"))
                 if not job_id or "/" in job_id:
@@ -215,12 +219,20 @@ class PlannerHandler(BaseHTTPRequestHandler):
                 )
             elif route == "/api/asset-store/validate":
                 result = self.app.validate_asset_candidate(payload)
+            elif route == "/api/asset-store/preview":
+                result = self.app.asset_product_preview(payload)
             elif route == "/api/recommend":
                 result = self.app.recommend(payload)
             elif route == "/api/catalog/manual":
                 result = self.app.save_manual(payload)
             elif route == "/api/asset-store/rag":
                 result = self.app.save_owned_rag(payload)
+            elif route == "/api/install/asset-store/download/prepare":
+                result = self.app.prepare_asset_store_download(payload)
+            elif route == "/api/install/asset-store/download/start":
+                result = self.app.start_asset_store_download(payload)
+            elif route == "/api/install/asset-store/import":
+                result = self.app.request_asset_import(payload)
             elif route == "/api/install/prepare":
                 result = self.app.prepare_install(payload)
             elif route == "/api/install/execute":

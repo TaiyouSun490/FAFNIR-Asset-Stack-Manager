@@ -1,242 +1,218 @@
-# Fafnir
+<p align="center">
+  <img src="game_stack_planner/static/fafnir-header-logo.png" alt="Fafnir — Asset Stack Manager" width="920">
+</p>
 
-**Asset Stack Manager** — owned assets are the hoard; an implementation-ready
-stack is what Fafnir brings back.
+<p align="center">
+  <strong>所有しているUnityアセットから、ゲームの実装構成を組み立てるローカルファーストのMCPツール。</strong>
+</p>
 
-[Logo studies and brand assets](game_stack_planner/static/brand.html)
+<p align="center">
+  日本語 ｜ <a href="README.en.md">English</a> ｜
+  <a href="docs/USER_GUIDE.md">利用ガイド</a> ｜
+  <a href="docs/MEDIA_CHECKLIST.md">スクリーンショット撮影表</a>
+</p>
 
-[日本語の利用ガイド](docs/USER_GUIDE.md)
+Fafnirは、「作りたいゲーム」を文章で渡すと、Unityの所有アセットを優先して候補を探し、
+各候補の用途、互換性、不足機能、代替案をCodexやClaude Codeが判断できる形で返します。
+手持ちで足りない役割だけ、GitHub、OpenUPM、購入未確認のAsset Store候補から補完します。
 
-Fafnir is a local-first Unity asset stack manager. It turns a game idea and
-an optional Unity project into an evidence-backed comparison across three
-independent lanes:
+> **Alpha:** 推薦スコアは比較材料です。互換性、安全性、ライセンスを保証するものではありません。
+> Unity版、Render Pipeline、対象Platform、ライセンス、導入差分は採用前に確認してください。
 
-- assets and packages you already have;
-- Unity Asset Store products you have not confirmed as purchased;
-- public GitHub repositories and OpenUPM packages.
+## 何ができるか
 
-The local web UI is in Japanese. The Python package, CLI, and JSON responses can
-also be used from automation.
+- Unity Editorへログインしているアカウントの**表示中・非表示を含むMy Assets**をローカルへ同期する
+- 日本語の用途説明から、英語名を含む所有アセットを多言語Embeddingで検索する
+- Unity ProjectのVersion、Render Pipeline、Input System、導入済みpackageと候補を照合する
+- 所有アセット、購入未確認のAsset Store候補、GitHub／OpenUPMを混ぜずに比較する
+- キャッシュ済み`.unitypackage`を展開・実行せず、script、asmdef、依存、pluginを静的検査する
+- Codex／Claude CodeへMCPで根拠を渡し、具体的な用途と組み合わせを判断させる
+- OpenUPM候補の導入差分を作り、確認後だけ固定versionで適用する
 
-> **Alpha:** recommendation scores are comparison aids, not compatibility or
-> security guarantees. Review licenses, Unity versions, render pipelines,
-> platform support, and the exact project diff before adopting third-party code.
+Fafnirは商品を購入せず、Unity認証tokenやCookieを取得せず、Asset Storeの検索結果一覧を巡回しません。
+Asset Store商品の購入、Download、ImportはUnityの公式UIで行います。
 
-## What works today
+## 全体の流れ
 
-- Scan `Packages/manifest.json`, `packages-lock.json`, and Unity project settings.
-- Detect downloaded `.unitypackage` files in the local `Asset Store-5.x` cache.
-- Inspect cached `.unitypackage` archives without extracting or executing them,
-  including scripts, asmdefs, dependencies, pipeline/input markers, and plugins.
-- Sync the signed-in Unity Editor account's complete visible and hidden My Assets
-  list through the included Editor bridge, then index product names and tags for
-  local retrieval.
-- Search GitHub through its official REST API and OpenUPM through its registry API.
-- Generate official Asset Store search links for missing capabilities.
-- Save an Asset Store product as a purchase-unconfirmed candidate with the
-  optional Chrome extension.
-- Differentially enrich known Asset Store products from Unity's public product
-  pages with descriptions, publisher/category, versions, compatibility,
-  dependencies, price, and aggregate rating.
-- Compare official and locally inspected compatibility data against a selected
-  Unity project; optionally compile in a disposable staging project.
-- Keep owned, purchase-unconfirmed, and community results in separate lanes so
-  one source cannot crowd out the others.
-- Prepare an approval-gated, exact-version OpenUPM manifest change with stale
-  state checks and rollback support.
-- Keep the catalog in a local SQLite database.
-- Build local multilingual text embeddings for AI-safe owned-asset fields and
-  rank RAG results by cosine similarity; report explicit index state until the
-  complete current generation is ready.
-- Expose the local catalog and approval-gated installer as MCP tools so an MCP
-  client such as Codex can judge concrete uses and combinations itself.
+```text
+Unity My Assets ─┐
+Unity Project ───┼─> FafnirのローカルSQLite＋RAG索引
+公開商品情報 ───┘                    │
+                                     ├─> Web UI / CLI
+                                     └─> MCP ─> Codex / Claude Code
+                                                  │
+                                                  └─> 用途・互換性・不足機能
+```
 
-Fafnir does not purchase products, export a Unity OAuth token, or
-automatically treat a local cache file as proof of ownership. It fetches only
-public metadata for product IDs already in the local catalog through a resumable,
-rate-limited queue; it does not enumerate search results, use cookies, or
-download asset contents. Asset Store products remain manual-install items.
+Fafnirは検索と根拠整理を担当します。最終的な設計判断はMCP client側のLLMが行います。
+ローカルWeb UIは大量の候補を目視確認するときの補助画面であり、MCP利用時は必須ではありません。
 
-## Quick start
+## 最短セットアップ
 
-Python 3.12 or newer is required.
+### 1. Fafnirをインストール
+
+Python 3.12以上を使用します。
 
 ```powershell
+git clone https://github.com/TaiyouSun490/FAFNIR-Asset-Stack-Manager.git
+cd FAFNIR-Asset-Stack-Manager
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
-fafnir ui
+fafnir --version
 ```
 
-Open `http://127.0.0.1:8770/` if the browser does not open automatically.
-Fafnir listens on loopback only. The former `game-stack` command remains as a
-compatibility alias.
+### 2. Unity My Assetsを同期
 
-The rebrand intentionally keeps existing local data and integration identifiers:
-`game_stack_planner`, `%LOCALAPPDATA%\game-stack-planner`,
-`com.taiyousun.stackforge`, versioned `stackforge.*` schemas, and legacy MCP tool
-aliases. Existing catalogs and Unity bridge installations therefore need no
-migration.
+Unity Package Managerの **Add package from disk** で、次のファイルを選びます。
 
-If the former editable Python distribution is already installed in the same
-environment, replace it once so the new console launcher wins module discovery:
-
-```powershell
-python -m pip uninstall -y stackforge-unity
-python -m pip install -e ".[dev]"
+```text
+unity_package/com.taiyousun.stackforge/package.json
 ```
 
-```powershell
-# Inspect a Unity project
-fafnir scan C:\Projects\MyGame
+Unity Hub／Editorへログインし、**Tools > Fafnir > My Assets Sync** を開いて
+**My Assetsを同期**を押します。以後はUnity起動中に既定6時間ごとに同期します。
+新しいアセットを購入した直後だけ、同じボタンで即時同期してください。
 
-# Compare all three source lanes
-fafnir recommend `
-  --prompt "Quest向け4人協力ローグライト" `
-  --project C:\Projects\MyGame `
-  --platform quest
+同期されるのは商品ID、表示名、Asset Store tag、購入・付与時刻、非表示状態、Unity版、
+出力時刻です。Unity認証token、Cookie、画像、レビュー本文、アセット本体は出力しません。
 
-# Work entirely from the saved local catalog
-fafnir recommend --prompt "2D deckbuilder" --offline
-
-# Inspect downloaded Asset Store packages without claiming purchase ownership
-fafnir scan-cache --inspect
-
-# Import an export created by the Unity Editor bridge
-fafnir sync-my-assets
-
-# UI and MCP startup automatically download the pinned model once and
-# build/update the owned-asset embedding index in the background.
-# Inspect progress or explicitly repair/rebuild the index:
-fafnir --json rag-status
-fafnir --json rag-index
-
-# Public product metadata coverage and an explicit bounded refresh
-fafnir --json asset-details-status
-fafnir --json asset-details-sync --limit 20
-
-# Validate one cached product against a project; staging compile is opt-in
-fafnir --json validate-asset asset_store:12345 --project C:\Projects\MyGame
-fafnir --json validate-asset asset_store:12345 --project C:\Projects\MyGame --compile
-
-# Search one lane
-fafnir catalog --scope community --query networking
-```
-
-Set `GITHUB_TOKEN` if you need a higher GitHub Search API rate limit. Fafnir
-does not load `.env` files automatically.
-
-### MCP integration
-
-Fafnir can run as a local stdio MCP server. The MCP client performs the LLM
-reasoning; Fafnir never needs an OpenAI API key.
+### 3-A. Codexから使う
 
 ```powershell
 codex mcp add fafnir -- fafnir mcp
 codex mcp get fafnir
 ```
 
-For a source checkout, use the checkout's Python interpreter and module command
-instead of relying on a globally installed `fafnir` executable:
+source checkoutを直接使う場合は、仮想環境のPythonを絶対pathで登録します。
 
 ```powershell
 codex mcp add fafnir -- `
-  C:\path\to\.venv\Scripts\python.exe -m game_stack_planner mcp
+  C:\path\to\FAFNIR-Asset-Stack-Manager\.venv\Scripts\python.exe `
+  -m game_stack_planner mcp
 ```
 
-The server exposes read-only status, catalog/RAG search, exact candidate lookup,
-and full game-stack evidence retrieval. Installation remains two-stage: first
-prepare and review an exact plan, then apply its one-time approval nonce. Asset
-Store items remain manual-install only. Bounded product metadata leaves the local
-process only when the connected MCP client includes tool results in a model
-request. Credentials, local paths, vectors, images, and downloaded asset
-contents are never returned.
+### 3-B. Claude Codeから使う
 
-Normal UI and MCP startup automatically imports a changed Unity My Assets export,
-then starts a detached index worker for the pinned `intfloat/multilingual-e5-small`
-model. The worker survives a short-lived MCP session and resumes the official
-Hugging Face HTTP cache on slow links. `fafnir_status`, `rag-status`, and the
-local UI expose the state, active generation, progress, coverage, and bounded
-failure message. Until the dense generation reaches 100% coverage, owned-asset
-search remains usable through an explicitly labeled `lexical_fallback`; it never
-presents partial vectors or lexical rank as dense similarity. Once ready, results
-use `hybrid_dense`: cosine similarity remains visible as `score`, while the final
-`rank_score` also preserves strong owned-catalog name, tag, and requirement matches.
+```powershell
+claude mcp add --transport stdio --scope user fafnir -- fafnir mcp
+claude mcp get fafnir
+```
 
-`rag-index` is a synchronous CLI repair command. The MCP tool
-`reindex_owned_asset_rag` only queues the same work and returns immediately.
-Custom E5-compatible models require both `FAFNIR_TEXT_EMBEDDING_MODEL` and an
-immutable `FAFNIR_TEXT_EMBEDDING_REVISION`. Stored vectors are isolated by
-model revision, tokenizer/pooling pipeline, and token limit. Vectors are never
-included in MCP or HTTP responses. `FAFNIR_RAG_MIN_SIMILARITY` changes the
-visible default relevance threshold (default `0.72`) without a code edit.
-The former `STACKFORGE_*` names remain accepted as lower-priority compatibility
-aliases.
+### 3-C. Web UIから使う
 
-### Is the local web UI required?
+```powershell
+fafnir ui
+```
 
-No. MCP covers status, retrieval, stack evidence, product-detail refresh,
-project compatibility checks, and approval-gated installation. The redesigned
-local UI is an optional workbench for visually browsing the asset index and
-reviewing large results. The Asset Store website is still needed for purchasing,
-reading full license or review text, and importing through Unity's supported UI.
+既定で`http://127.0.0.1:8770/`を開きます。Fafnirはloopbackだけで待ち受けます。
 
-## Chrome extension
+### 4. 索引状態を確認
 
-The optional extension captures only the current official Asset Store product
-URL, tab title, and fields entered by the user. It does not read page HTML,
-cookies, descriptions, images, prices, or search listings.
+UIまたはMCPの起動時に、固定revisionの`intfloat/multilingual-e5-small`を初回取得し、
+所有アセットの索引をバックグラウンドで作成します。
 
-See [browser_extension/unity_asset_store/README.md](browser_extension/unity_asset_store/README.md)
-for unpacked-extension and Native Messaging setup.
+```powershell
+fafnir --json rag-status
+```
 
-## Unity My Assets sync
+- `hybrid_dense`: 現行世代の全件Embeddingが完成
+- `lexical_fallback`: Dense索引の準備中。所有確認済み文書だけで暫定検索
 
-Install the embedded package from
-`unity_package/com.taiyousun.stackforge/package.json` with Unity Package
-Manager's **Add package from disk** command. Then:
+部分的なベクトルをDense検索結果として返すことはありません。回線断やFafnir終了後も状態を保存し、
+次回起動時に続きから処理します。
 
-1. Sign in to Unity Hub / Unity Editor.
-2. Open **Tools > Fafnir > My Assets Sync**.
-3. Keep the default periodic sync enabled (6 hours), adjust its visible interval,
-   or click **My Assetsを同期** for an immediate post-purchase refresh.
-4. Keep Fafnir running or start it later; it imports the changed export and
-   queues differential indexing automatically. The Catalog button is a manual
-   repair/check path, not a required second sync step.
+## AIへの依頼例
 
-The Editor bridge writes a versioned JSON file under the user's local application
-data directory. It includes only product ID, display name, Asset Store tags,
-purchase/grant time, hidden state, Unity version, and export time. Fafnir
-does not require Asset Inventory or a Chrome extension for this workflow.
+```text
+Fafnirを使い、所有アセットを優先して、吹雪で孤立した山岳観測所を舞台にした
+一人称ホラー探索ゲームの実装構成を作って。
+停電、無線機の周波数パズル、雪上の足跡、吹雪、徘徊する怪異、体温管理、
+持ち物管理、チェックポイント保存が必要。
+各アセットの用途とUnity 6での互換性を説明し、不足機能だけ外部候補から補って。
+```
 
-The bridge is an adapter over Unity Editor's undocumented internal Package
-Manager service, so a future Unity release can require an adapter update. Its
-design follows Unity's published reference source for the
-[service container](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/PackageManagerUI/Editor/Services/ServicesContainer.cs),
-[My Assets REST service](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/PackageManagerUI/Editor/Services/AssetStore/AssetStoreRestAPI.cs),
-and [purchase result model](https://github.com/Unity-Technologies/UnityCsReference/blob/master/Modules/PackageManagerUI/Editor/Services/AssetStore/AssetStorePurchases.cs).
-That reference source is not copied or redistributed by Fafnir.
+短い検索も可能です。
 
-## Documentation
+```text
+Fafnirで「ダンスやエモート時のカートゥーンVFX」を所有アセットから探して。
+各候補を何に使えるか、Render Pipeline情報と一緒に説明して。
+```
 
-- [日本語の利用ガイド（UI・CLI・Codex・Claude・ローカルRAG）](docs/USER_GUIDE.md)
-- [Brand guide and approved logo variants](docs/BRAND.md)
-- [Planner workflow](docs/GAME_STACK_PLANNER.md)
-- [Federated source model](docs/GAME_STACK_FEDERATED_SEARCH.md)
-- [Approval-gated installation](docs/GAME_STACK_INSTALLATION.md)
+MCPで主に使用するtool:
 
-## Development
+| Tool | 用途 |
+| --- | --- |
+| `fafnir_status` | DB、My Assets同期、RAG、商品詳細取得の状態 |
+| `search_owned_asset_rag` | 所有アセットの意味検索 |
+| `retrieve_game_stack_evidence` | ゲーム要件に対する3レーンの比較材料 |
+| `get_unity_asset_candidate` | 1候補の根拠と公開互換性情報 |
+| `validate_cached_asset_for_project` | キャッシュ済みpackageとProjectの照合 |
+| `prepare_candidate_install` | 書き込み前の導入計画と差分 |
+
+## データはどこに保存され、何がAIへ渡るか
+
+| データ | 既定の保存先 | AI clientへ送る内容 |
+| --- | --- | --- |
+| カタログ、RAG文書、ベクトル | `%LOCALAPPDATA%\game-stack-planner\catalog.sqlite3` | 検索に一致した候補の限定メタデータのみ |
+| Unity My Assets出力 | `%LOCALAPPDATA%\game-stack-planner\unity-my-assets.json` | 採用候補として返された限定メタデータのみ |
+| Embedding model | Hugging Faceのローカルcache | 送信しない |
+| `.unitypackage`内容 | Unityのローカルcache | 絶対path、source本文、binaryを送信しない |
+
+DB全体、ベクトル、認証情報、ローカルpath、画像、レビュー本文はMCP応答へ含めません。
+ただし、MCPが返した商品名、tag、説明の抜粋、互換性、scoreは、接続先AI serviceのmodel入力に
+含まれる場合があります。完全なoffline利用にはCLIの`--offline`を使い、外部AIへ接続しないでください。
+
+通常の`git push`でローカルDBやMy Assets出力が送信されないよう、対象fileは`.gitignore`済みです。
+
+## UI・CLI・MCPの使い分け
+
+| 入口 | 向いている用途 |
+| --- | --- |
+| MCP | Codex／Claude Codeに用途、組み合わせ、不足機能を考えさせる |
+| Web UI | 大量候補の閲覧、同期状態の確認、導入差分の目視確認 |
+| CLI | 自動化、offline検索、JSON出力、診断と修復 |
+
+代表的なCLI:
+
+```powershell
+fafnir scan C:\Projects\MyGame
+fafnir recommend --prompt "2D deckbuilder" --offline
+fafnir --json rag-search --query "浸水した通路の材質別足音" --limit 10
+fafnir scan-cache --inspect
+fafnir --json asset-details-status
+```
+
+## 現在の制限
+
+- 推薦結果は互換性、security、licenseの保証ではない
+- 公開商品pageがない廃止・非公開商品は、My Assets由来の名前とtagだけで検索する
+- Unity Editor bridgeは内部Package Manager serviceへのadapterであり、Unity更新への追従が必要になる場合がある
+- Asset Store商品の購入・Download・Importは自動化しない
+- GitHub候補はpackage root、license、固定commitを確認できるまで自動導入しない
+- `.unitypackage`の本番Projectへの自動importは行わない
+
+## 詳細資料
+
+- [利用ガイド：インストール、UI、CLI、Codex、Claude Code、トラブル対応](docs/USER_GUIDE.md)
+- [検索sourceと所有証拠の扱い](docs/GAME_STACK_FEDERATED_SEARCH.md)
+- [承認付き導入とrollbackの安全条件](docs/GAME_STACK_INSTALLATION.md)
+- [構成生成の詳細](docs/GAME_STACK_PLANNER.md)
+- [RAG実装状況と残る評価](docs/RAG_REMAINING_WORK.md)
+- [Brand guide](docs/BRAND.md)
+- [必要な画面素材と撮影条件](docs/MEDIA_CHECKLIST.md)
+
+旧名からの互換性維持のため、module名`game_stack_planner`、data folder
+`game-stack-planner`、Unity package ID`com.taiyousun.stackforge`、`stackforge.*` schema、
+`game-stack` command aliasは変更していません。既存DBのmigrationやMy Assetsの再同期は不要です。
+
+## 開発
 
 ```powershell
 python -m pytest -q
 ```
 
-The tests cover source separation, URL normalization, cache semantics, project
-scanning, recommendation relevance, Native Messaging validation, install-plan
-integrity, rollback checks, and static UI contracts.
-
 ## License
 
-[MIT](LICENSE). Unity, Unity Asset Store, GitHub, OpenUPM, and Chrome are products
-or trademarks of their respective owners. Fafnir is not affiliated with or
-endorsed by them.
+[MIT](LICENSE)。Unity、Unity Asset Store、GitHub、OpenUPM、Chromeは各社の製品または商標です。
+Fafnirは各社の公式製品ではなく、提携・承認を受けたものでもありません。

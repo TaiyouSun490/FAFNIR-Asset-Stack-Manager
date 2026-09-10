@@ -4,11 +4,14 @@ import tempfile
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from mcp.client import Client
 from mcp.client.stdio import StdioServerParameters
+from mcp.server.mcpserver.utilities.types import Image
 
 from game_stack_planner.api import GameStackApplication
+from game_stack_planner.asset_store_visuals import ReviewImage
 from game_stack_planner.mcp_server import StackforgeMcpTools, build_mcp_server
 from game_stack_planner.models import Candidate
 from game_stack_planner.repository import StackRepository
@@ -110,6 +113,37 @@ class StackforgeMcpBoundaryTests(unittest.TestCase):
         self.assertEqual("asset_store:99101", result["items"][0]["candidate_id"])
         self.assertEqual("disabled", result["index"]["state"])
 
+    def test_visual_review_returns_metadata_then_actual_image_content(self):
+        self.repository.upsert_candidates((Candidate(
+            id="asset_store:30",
+            source="asset_store",
+            external_id="30",
+            title="Visual Environment",
+            url="https://assetstore.unity.com/packages/visual-environment-30",
+        ),))
+        review = ({
+            "candidate_id": "asset_store:30",
+            "detail": "quick",
+            "image_count": 1,
+        }, (ReviewImage(
+            url="https://assetstorev1-prd-cdn.unity3d.com/key-image/test.jpg",
+            role="main",
+            mime_type="image/jpeg",
+            content=b"jpeg-bytes",
+        ),))
+
+        with patch(
+            "game_stack_planner.mcp_server.review_candidate_visuals",
+            return_value=review,
+        ):
+            result = self.tools.review_asset_store_candidate_visuals(
+                "asset_store:30", "quick"
+            )
+
+        self.assertIn('"image_count": 1', result[0])
+        self.assertIsInstance(result[1], Image)
+        self.assertEqual(b"jpeg-bytes", result[1].data)
+
 
 class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
     async def test_server_lists_read_and_approval_gated_write_tools(self):
@@ -127,6 +161,10 @@ class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("fafnir_status", tools)
                     self.assertIn("stackforge_status", tools)
                     self.assertIn("get_fafnir_install_status", tools)
+                    self.assertIn("prepare_owned_asset_download", tools)
+                    self.assertIn("start_reviewed_asset_download", tools)
+                    self.assertIn("get_asset_store_download_status", tools)
+                    self.assertIn("review_asset_store_candidate_visuals", tools)
                     self.assertTrue(
                         tools["search_unity_assets"].annotations.read_only_hint
                     )
@@ -135,6 +173,12 @@ class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
                     )
                     self.assertTrue(
                         tools["reindex_owned_asset_rag"].annotations.open_world_hint
+                    )
+                    self.assertFalse(
+                        tools["prepare_owned_asset_download"].annotations.read_only_hint
+                    )
+                    self.assertTrue(
+                        tools["start_reviewed_asset_download"].annotations.open_world_hint
                     )
 
                     called = await client.call_tool("fafnir_status", {})

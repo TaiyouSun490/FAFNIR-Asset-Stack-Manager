@@ -45,7 +45,7 @@ where = ["."]
 include = ["game_stack_planner*"]
 
 [tool.setuptools.package-data]
-"game_stack_planner" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg"]
+"game_stack_planner" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg", "static/*.png"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

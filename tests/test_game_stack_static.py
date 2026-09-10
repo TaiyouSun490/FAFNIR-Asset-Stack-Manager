@@ -22,6 +22,7 @@ class StaticGuiTests(unittest.TestCase):
     def test_fafnir_brand_assets_are_packaged_and_header_uses_recommended_logo(self):
         for name in (
             "fafnir-logo-flat.svg",
+            "fafnir-header-logo.png",
         ):
             with self.subTest(name=name):
                 self.assertTrue((self.root / name).is_file())
@@ -30,10 +31,11 @@ class StaticGuiTests(unittest.TestCase):
         self.assertIn("Flat Geometry", brand)
         self.assertNotIn("Graffiti Slash", brand)
         self.assertNotIn("Western Stylized", brand)
-        self.assertIn('class="brand-emblem"', self.html)
-        self.assertIn('class="brand-overline">LOCAL ASSET VAULT', self.html)
-        self.assertIn('<strong><em>F</em>AFNIR</strong>', self.html)
-        self.assertIn('<small>ASSET STACK MANAGER</small>', self.html)
+        self.assertIn(
+            'class="brand-logo" src="/fafnir-header-logo.png"', self.html
+        )
+        self.assertIn('alt="Fafnir Asset Stack Manager"', self.html)
+        self.assertNotIn('class="brand-emblem"', self.html)
         self.assertIn("Fafnir — Asset Stack Manager", self.html)
         self.assertNotIn("STACKFORGE /", self.html)
 

@@ -1,0 +1,10 @@
+interface:
+  display_name: "Fafnir Unity Assets"
+  short_description: "Unityアセットを検索・評価し、承認後に安全にダウンロード・導入"
+  default_prompt: "Use $fafnir-unity-assets to choose, download, and safely install the Unity assets needed for this game."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "fafnir"
+      description: "Local Fafnir catalog, RAG, validation, and approval-gated install tools"

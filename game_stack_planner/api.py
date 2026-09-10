@@ -14,6 +14,11 @@ from urllib.parse import urlparse
 from . import __version__
 from .asset_store import normalize_asset_store_product_url
 from .asset_store_cache import AssetStoreCacheError
+from .asset_store_import import AssetStoreImportCoordinator
+from .asset_store_download import (
+    AssetStoreDownloadCoordinator,
+    AssetStoreDownloadError,
+)
 from .asset_store_details import (
     AssetStoreDetailsError,
     DEFAULT_FETCH_DELAY_SECONDS,
@@ -24,6 +29,7 @@ from .asset_store_details import (
 from .install_service import InstallCoordinator, InstallCoordinatorError
 from .local_asset_validation import (
     LocalAssetValidationError,
+    resolve_cached_package_path,
     validate_cached_asset,
 )
 from .repository import (
@@ -124,6 +130,8 @@ class GameStackApplication:
         )
         self.planner = planner or GameStackPlanner(self.repository)
         self.installer = InstallCoordinator(self.repository)
+        self.asset_store_downloader = AssetStoreDownloadCoordinator(self.repository)
+        self.asset_store_importer = AssetStoreImportCoordinator(self.asset_store_downloader)
         self._automatic_rag_indexing = False
         self._rag_thread_lock = threading.Lock()
         self._rag_cancel = threading.Event()
@@ -457,8 +465,8 @@ class GameStackApplication:
                 "openupm_exact_version_install": True,
                 "github_install_requires_inspection": True,
                 "asset_store_purchase_automated": True,
-                "asset_store_download_automated": False,
-                "unitypackage_preview_import": False,
+                "asset_store_download_automated": True,
+                "unitypackage_preview_import": True,
             },
             "limits": {
                 "prompt_characters": 8000,
@@ -495,6 +503,9 @@ class GameStackApplication:
                 "ttl_days": self._asset_store_detail_ttl_days(),
                 "launch_error": self._asset_store_detail_launch_error,
             },
+            "asset_store_download_bridge": (
+                self.asset_store_downloader.bridge_status()
+            ),
             "requirement_categories": list(_REQUIREMENT_CATEGORIES),
             "search_scopes": list(SEARCH_SCOPES),
         }
@@ -882,6 +893,109 @@ class GameStackApplication:
                 project_path=project_path,
             )
         except InstallCoordinatorError as exc:
+            raise ApiError(exc.status, exc.code, str(exc)) from exc
+
+    def prepare_asset_store_download(
+        self, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        _only_fields(payload, {"candidate_ids"})
+        candidate_ids = payload.get("candidate_ids")
+        if not isinstance(candidate_ids, list) or not all(
+            isinstance(value, str) for value in candidate_ids
+        ):
+            raise ApiError(
+                400,
+                "invalid_request",
+                "candidate_ids must be a list of candidate ID strings.",
+            )
+        try:
+            return self.asset_store_downloader.prepare(
+                candidate_ids=candidate_ids
+            )
+        except AssetStoreDownloadError as exc:
+            raise ApiError(exc.status, exc.code, str(exc)) from exc
+
+    def start_asset_store_download(
+        self, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        _only_fields(payload, {"plan_id", "approval_nonce"})
+        plan_id = _text(
+            payload.get("plan_id"),
+            name="plan_id",
+            required=True,
+            maximum=100,
+        )
+        approval_nonce = _text(
+            payload.get("approval_nonce"),
+            name="approval_nonce",
+            required=True,
+            maximum=256,
+        )
+        try:
+            return self.asset_store_downloader.start(
+                plan_id=plan_id,
+                approval_nonce=approval_nonce,
+            )
+        except AssetStoreDownloadError as exc:
+            raise ApiError(exc.status, exc.code, str(exc)) from exc
+
+    def asset_store_download_job(self, job_id: str) -> dict[str, Any]:
+        safe_id = _text(
+            job_id,
+            name="job_id",
+            required=True,
+            maximum=100,
+        )
+        try:
+            result = self.asset_store_downloader.get(safe_id)
+        except AssetStoreDownloadError as exc:
+            raise ApiError(exc.status, exc.code, str(exc)) from exc
+        if result["job"]["state"] == "completed":
+            try:
+                scan = self.planner.scan_asset_store_cache(
+                    None, inspect_packages=False
+                )
+                result["cache_scan"] = scan.summary()
+            except AssetStoreCacheError as exc:
+                result["cache_scan_error"] = str(exc)
+        return result
+
+    def asset_product_preview(self, payload: dict[str, Any]) -> dict[str, Any]:
+        _only_fields(payload, {"candidate_id"})
+        candidate_id = _text(payload.get("candidate_id"), name="candidate_id", required=True, maximum=300)
+        candidate = self.repository.get_candidate(candidate_id)
+        if candidate is None or candidate.source != "asset_store":
+            raise ApiError(404, "candidate_not_found", "Asset Store商品を選択してください。")
+        value = candidate_view(candidate)
+        if not candidate.metadata.get("asset_store_details", {}).get("visuals"):
+            try:
+                details, _ = fetch_product_details(candidate.external_id, candidate.url)
+            except AssetStoreDetailsError as exc:
+                raise ApiError(422, "product_preview_unavailable", str(exc)) from exc
+            value = candidate_view(self.repository.complete_asset_store_detail_job(candidate.id, details))
+        return {"candidate": value}
+
+    def request_asset_import(self, payload: dict[str, Any]) -> dict[str, Any]:
+        _only_fields(payload, {"candidate_id", "project_path", "platform", "cache_path"})
+        checked = self.validate_asset_candidate({**payload, "compile": False})
+        validation = checked["validation"]
+        if validation["overall_status"] == "incompatible":
+            raise ApiError(422, "asset_incompatible", "互換性検査で問題が見つかりました。検査結果を確認してください。", validation)
+        candidate = self.repository.get_candidate(checked["candidate"]["id"])
+        cache = self.repository.get_candidate(validation["cache_candidate_id"])
+        try:
+            package = resolve_cached_package_path(cache, explicit_cache_root=payload.get("cache_path") or None)
+            return self.asset_store_importer.request(package=package,
+                project=Path(payload["project_path"]), title=candidate.title)
+        except AssetStoreDownloadError as exc:
+            raise ApiError(exc.status, exc.code, str(exc)) from exc
+        except LocalAssetValidationError as exc:
+            raise ApiError(422, "cached_package_missing", str(exc)) from exc
+
+    def asset_import_job(self, job_id: str) -> dict[str, Any]:
+        try:
+            return self.asset_store_importer.get(job_id)
+        except AssetStoreDownloadError as exc:
             raise ApiError(exc.status, exc.code, str(exc)) from exc
 
     def execute_install(self, payload: dict[str, Any]) -> dict[str, Any]:

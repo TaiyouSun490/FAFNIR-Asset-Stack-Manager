@@ -8,6 +8,7 @@ let ragStatusTimer = null;
 let requirementCategories = [];
 let activeInstallPlan = null;
 let activeInstallNonce = "";
+let catalogRequestId = 0;
 const INSTALL_STATUS_LABELS = {
   ready: "導入準備完了",
   manual: "手動導入が必要",
@@ -51,9 +52,13 @@ async function api(path, options = {}) {
     headers: options.body ? {"Content-Type": "application/json"} : {},
     ...options,
   });
-  const value = await response.json().catch(() => ({}));
+  let value;
+  try { value = await response.json(); }
+  catch { throw new Error("サーバー応答を読み取れませんでした。もう一度お試しください。"); }
   if (!response.ok) {
-    throw new Error(value.error?.message || `HTTP ${response.status}`);
+    const error = new Error(value.error?.message || `HTTP ${response.status}`);
+    error.code = value.error?.code;
+    throw error;
   }
   return value;
 }
@@ -471,7 +476,8 @@ function renderPlans(result) {
         inventoryLabel(item.candidate),
         ...item.requirement_titles,
       ], meta);
-      row.append(heading, meta);
+      row.append(assetThumbnail(item.candidate), heading, meta);
+      row.append(assetActionButtons(item.candidate));
       if (Array.isArray(item.usage)) {
         item.usage.forEach((usage) => {
           row.append(element("p", "stack-use", `${usage.role}：${usage.use_case}`));
@@ -505,7 +511,7 @@ function candidateCard(item, index) {
   } else {
     title.textContent = candidate.title;
   }
-  body.append(title);
+  body.append(assetThumbnail(candidate), title);
   const meta = element("div", "meta");
   chips([
     sourceLabel(candidate.source),
@@ -518,7 +524,7 @@ function candidateCard(item, index) {
   if (item.reasons?.length) body.append(element("div", "reason", `根拠：${item.reasons.join(" / ")}`));
   if (item.risks?.length) body.append(element("div", "risk", `確認：${item.risks.join(" / ")}`));
   const actions = element("div", "candidate-actions");
-  actions.append(installActionButton(candidate));
+  actions.append(assetActionButtons(candidate));
   actions.append(validationActionButtons(candidate));
   body.append(actions);
   card.append(body, element("div", "score", String(Math.round(item.score))));
@@ -643,7 +649,7 @@ function catalogCard(candidate) {
     chips(["購入済みRAG"], labels, "rag");
   }
   chips(candidate.categories || [], labels);
-  card.append(labels, element("h3", "", candidate.title));
+  card.append(assetThumbnail(candidate), labels, element("h3", "", candidate.title));
   card.append(element("p", "", candidate.description || "説明なし"));
   const details = candidate.metadata?.asset_store_details;
   if (details) {
@@ -673,7 +679,7 @@ function catalogCard(candidate) {
   const info = element("span", "meta", candidate.license || candidate.version || "");
   footer.append(info);
   const actions = element("div", "catalog-actions");
-  actions.append(installActionButton(candidate));
+  actions.append(assetActionButtons(candidate));
   actions.append(validationActionButtons(candidate));
   const url = safeUrl(candidate.url);
   if (url) {
@@ -689,6 +695,7 @@ function catalogCard(candidate) {
 }
 
 async function loadCatalog() {
+  const requestId = ++catalogRequestId;
   const params = new URLSearchParams({
     q: $("#catalog-query").value.trim(),
     source: $("#catalog-source").value,
@@ -698,6 +705,8 @@ async function loadCatalog() {
   });
   try {
     const value = await api(`/api/catalog?${params}`);
+    if (requestId !== catalogRequestId) return;
+    if (!Array.isArray(value.items)) throw new Error("一覧を取得できませんでした。もう一度お試しください。");
     $("#catalog-count").textContent = value.count;
     const root = $("#catalog-items");
     root.replaceChildren();
@@ -705,7 +714,7 @@ async function loadCatalog() {
     value.items.forEach((item) => root.append(catalogCard(item)));
     updateStats(value.summary);
   } catch (error) {
-    showToast(error.message);
+    if (requestId === catalogRequestId) showToast(error.message);
   }
 }
 
@@ -852,6 +861,12 @@ function restorePreferences() {
 }
 
 function bind() {
+  $("#show-asset-images").checked = localStorage.getItem("fafnir.showAssetImages") !== "false";
+  $("#show-asset-images").addEventListener("change", () => {
+    localStorage.setItem("fafnir.showAssetImages", String($("#show-asset-images").checked));
+    if (lastResult) renderResult(lastResult);
+    if ($("#catalog-view").classList.contains("active")) loadCatalog();
+  });
   $$(".tab").forEach((tab) => tab.addEventListener("click", () => {
     showView(tab.dataset.view);
   }));

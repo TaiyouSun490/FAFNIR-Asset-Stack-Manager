@@ -1,5 +1,8 @@
 # Fafnir federated search
 
+> 対象: sourceの分離、所有証拠、Asset Storeアクセス方針を確認する上級利用者・開発者。
+> 通常のセットアップは[利用ガイド](USER_GUIDE.md)を参照してください。
+
 Fafnirの検索価値は、同じゲーム機能に対して次の3レーンを並べて比較できることです。
 
 1. **手持ち・ローカル** — ユーザーが所有を明示したAsset Store商品、Unityのローカルキャッシュ、現在のUnityプロジェクトにあるパッケージ
@@ -22,9 +25,9 @@ Fafnirの検索価値は、同じゲーム機能に対して次の3レーンを�
 GUIのCatalogから「ローカルキャッシュを取込」を実行するか、CLIを使います。
 
 ```powershell
-game-stack scan-cache --inspect
-game-stack scan-cache --path "D:\UnityCache\Asset Store-5.x" --inspect
-game-stack catalog --scope owned_assets --query inventory
+fafnir scan-cache --inspect
+fafnir scan-cache --path "D:\UnityCache\Asset Store-5.x" --inspect
+fafnir catalog --scope owned_assets --query inventory
 ```
 
 標準では次を確認します。

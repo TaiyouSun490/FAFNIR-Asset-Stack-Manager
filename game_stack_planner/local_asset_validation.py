@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
@@ -249,6 +250,14 @@ def _compiler_diagnostics(log_text: str) -> list[str]:
     return list(dict.fromkeys(result))
 
 
+def _has_successful_batchmode_exit(log_text: str) -> bool:
+    normalized = str(log_text or "").casefold()
+    return (
+        "exiting batchmode successfully" in normalized
+        or "application will terminate with return code 0" in normalized
+    )
+
+
 def run_staging_compile_validation(
     package_path: Path,
     project: ProjectSnapshot,
@@ -288,6 +297,17 @@ def run_staging_compile_validation(
             "-logFile", "-",
         ], timeout_seconds=timeout_seconds)
         diagnostics = _compiler_diagnostics(validation.stdout)
+        # Unity's API Updater can log compiler errors for the pre-update source,
+        # recompile successfully, and still exit cleanly. Those earlier lines are
+        # historical diagnostics rather than the final compiler state.
+        resolved_diagnostics: list[str] = []
+        if (
+            validation.returncode == 0
+            and diagnostics
+            and _has_successful_batchmode_exit(validation.stdout)
+        ):
+            resolved_diagnostics = diagnostics
+            diagnostics = []
         passed = validation.returncode == 0 and not diagnostics
         return {
             "state": "passed" if passed else "failed",
@@ -295,11 +315,59 @@ def run_staging_compile_validation(
             "unity_version": project.unity_version,
             "exit_code": validation.returncode,
             "diagnostics": diagnostics,
+            "resolved_diagnostics": resolved_diagnostics,
             "limitations": (
                 "一時的な空プロジェクトへ対象manifestとunitypackageを入れた検査です。"
                 "本番シーンの描画・操作・実行時挙動までは保証しません。"
             ),
         }
+
+
+def run_project_compile_validation(
+    project: ProjectSnapshot,
+    *,
+    timeout_seconds: int = 900,
+) -> dict[str, Any]:
+    editor = find_unity_editor(project.unity_version)
+    project_root = Path(project.path).resolve()
+    if editor is None:
+        return {
+            "state": "unavailable",
+            "reason": "プロジェクトと同じUnity Editorが見つかりません",
+            "unity_version": project.unity_version,
+        }
+    if not (project_root / "Assets").is_dir():
+        return {
+            "state": "unavailable",
+            "reason": "対象UnityプロジェクトのAssetsフォルダーが見つかりません",
+            "unity_version": project.unity_version,
+        }
+    validation = _run_unity([
+        str(editor), "-batchmode", "-nographics", "-accept-apiupdate", "-quit",
+        "-projectPath", str(project_root), "-logFile", "-",
+    ], timeout_seconds=timeout_seconds)
+    diagnostics = _compiler_diagnostics(validation.stdout)
+    resolved_diagnostics: list[str] = []
+    if (
+        validation.returncode == 0
+        and diagnostics
+        and _has_successful_batchmode_exit(validation.stdout)
+    ):
+        resolved_diagnostics = diagnostics
+        diagnostics = []
+    passed = validation.returncode == 0 and not diagnostics
+    return {
+        "state": "passed" if passed else "failed",
+        "phase": "installed_project_compile",
+        "unity_version": project.unity_version,
+        "exit_code": validation.returncode,
+        "diagnostics": diagnostics,
+        "resolved_diagnostics": resolved_diagnostics,
+        "limitations": (
+            "実プロジェクトのEditorコンパイル検査です。"
+            "シーンの描画・操作・実行時挙動までは保証しません。"
+        ),
+    }
 
 
 def validate_cached_asset(
@@ -320,15 +388,23 @@ def validate_cached_asset(
     except UnityPackageInspectionError as exc:
         raise LocalAssetValidationError(str(exc)) from exc
     project_root = Path(project.path).resolve()
+    current_metadata = dict(candidate.metadata)
+    current_metadata.pop("local_validation", None)
+    current_metadata.pop("local_validations", None)
+    current_candidate = replace(candidate, metadata=current_metadata)
     static = _static_checks(
-        candidate,
+        current_candidate,
         inspection,
         project,
         platform=platform,
     )
     imported = _import_detection(inspection, project_root)
     compile_result = (
-        run_staging_compile_validation(package_path, project)
+        (
+            run_project_compile_validation(project)
+            if imported["state"] == "imported"
+            else run_staging_compile_validation(package_path, project)
+        )
         if compile_test
         else {"state": "not_run", "reason": "明示的なコンパイル検査が未実行"}
     )
@@ -361,6 +437,7 @@ __all__ = [
     "LocalAssetValidationError",
     "find_unity_editor",
     "resolve_cached_package_path",
+    "run_project_compile_validation",
     "run_staging_compile_validation",
     "validate_cached_asset",
 ]

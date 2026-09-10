@@ -3,6 +3,25 @@
 Fafnirは、Unityの所有アセットを起点に実装候補を組み立てるローカルの
 **Asset Stack Manager**です。
 
+## 最初に読むところ
+
+初回は次の順番だけ実行すれば使い始められます。
+
+1. [インストール](#2-インストール)
+2. [Unity所有アセットを同期](#4-unity所有アセットを同期)
+3. Codexなら[Codexから使う](#7-codexから使う)、Claude Codeなら[Claude-codeから使う](#8-claude-codeから使う)
+4. [AIへの依頼例](#9-aiへの依頼例)をそのまま試す
+
+入口は目的に応じて1つだけ選びます。
+
+| 入口 | 使う場面 | 必須か |
+| --- | --- | --- |
+| MCP | Codex／Claude Codeに用途、組み合わせ、不足機能を判断させる | AI連携時に使用 |
+| Web UI | 候補を一覧で見る、同期状態や導入差分を目視確認する | 任意 |
+| CLI | offline検索、JSON出力、自動化、診断・修復 | 任意 |
+
+Web UIを起動してからMCPを使う必要はありません。3つの入口は同じローカルDBを共有します。
+
 改名前からのDB、`game_stack_planner`、`game-stack-planner`データフォルダ、
 `com.taiyousun.stackforge` Unity package ID、`stackforge.*` schemaは互換性のため
 変更しません。既存環境の再同期やDB移行は不要です。
@@ -44,8 +63,8 @@ MCP応答へ含めません。ただし、AIへ質問したときは、MCPツー
 Python 3.12以上を使用します。
 
 ```powershell
-git clone <repository-url>
-cd stackforge
+git clone https://github.com/TaiyouSun490/FAFNIR-Asset-Stack-Manager.git
+cd FAFNIR-Asset-Stack-Manager
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
@@ -302,6 +321,28 @@ claude mcp get fafnir
 
 Fafnir、Codex、ClaudeのFafnir MCPを終了してから、`catalog.sqlite3`と同じ名前の
 `-wal`、`-shm`が存在する場合は3ファイルを一緒にコピーしてください。
+
+## 候補画像とダウンロード・インポート
+
+候補カード、構成案、ASSETS一覧に商品画像と操作ボタンを表示します。ヘッダーの
+「商品画像」をオフにすると画像を読み込みません。「商品画像を見る」から個別表示もできます。
+古い候補の画像情報は、表示中のカードから順番に補完します。画像の取得に失敗しても
+商品ページやダウンロード操作は利用できます。
+
+- **詳細を見る**：商品画像・説明・商品ページと導入先をまとめて確認。
+- **ダウンロード**：所有確認済みの商品をUnityの共通キャッシュへ取得。導入先指定は不要。
+- **インポート…**：導入先を指定して取得・静的検査を行い、接続中の対象Unityに標準の
+  Import Package画面を開く。キャッシュがあれば再ダウンロードしません。
+
+Unityのファイル一覧でImportまたはCancelを選ぶと、Webの詳細画面へ結果が返ります。
+インポート完了はファイル取り込みの完了で、コンパイルやシーンでの動作保証ではありません。
+画像を見ただけでは取得・導入を実行しません。未購入・所有未確認の商品には取得ボタンを
+表示しません。詳細画面を閉じてもUnity側の処理は続き、同じブラウザタブで開き直すと
+進捗を再表示します。
+
+Unityの標準確認画面は
+[AssetDatabase.ImportPackageのinteractiveモード](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/AssetDatabase.ImportPackage.html)
+を使います。無人で全ファイルを上書きする自動Importは行いません。
 
 ## 13. Gitへ含まれないもの
 

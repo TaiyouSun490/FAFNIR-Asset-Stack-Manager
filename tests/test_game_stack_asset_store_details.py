@@ -14,6 +14,7 @@ from game_stack_planner.asset_store_details import (
     parse_product_page,
     resolve_product_urls,
 )
+from game_stack_planner.asset_store_visuals import review_candidate_visuals
 from game_stack_planner.compatibility import assess_candidate_compatibility
 from game_stack_planner.local_asset_validation import validate_cached_asset
 from game_stack_planner.models import Candidate, GameRequirement, ProjectSnapshot
@@ -80,6 +81,21 @@ def product_details_state() -> dict[str, object]:
                         "customLicense": False,
                         "licenseText": "",
                         "firstPublishedDate": "2024-01-02T00:00:00Z",
+                        "mainImage": {
+                            "big": "//assetstorev1-prd-cdn.unity3d.com/key-image/main.jpg",
+                        },
+                        "images": [
+                            {
+                                "type": "screenshot",
+                                "imageUrl": "//assetstorev1-prd-cdn.unity3d.com/package-screenshot/one.jpg",
+                                "thumbnailUrl": "//assetstorev1-prd-cdn.unity3d.com/package-screenshot/one_thumb.jpg",
+                            },
+                            {
+                                "type": "youtube",
+                                "imageUrl": "https://www.youtube.com/embed/example",
+                                "thumbnailUrl": "//assetstorev1-prd-cdn.unity3d.com/package-screenshot/video_thumb.png",
+                            },
+                        ],
                     },
                     "42002": {"id": "42002", "name": "Required Core"},
                 },
@@ -185,6 +201,45 @@ class AssetStoreProductPageTests(unittest.TestCase):
             details["dependencies"],
         )
         self.assertNotIn("<", details["description"])
+        self.assertEqual(3, details["visuals"]["image_count"])
+        self.assertEqual(
+            "https://assetstorev1-prd-cdn.unity3d.com/key-image/main.jpg",
+            details["visuals"]["main_image_url"],
+        )
+        self.assertEqual(
+            "https://assetstorev1-prd-cdn.unity3d.com/package-screenshot/video_thumb.png",
+            details["visuals"]["gallery"][1]["image_url"],
+        )
+
+    def test_visual_review_is_opt_in_bounded_and_returns_actual_images(self) -> None:
+        candidate = Candidate(
+            id=f"asset_store:{PRODUCT_ID}",
+            source="asset_store",
+            external_id=PRODUCT_ID,
+            title="Subsea Systems",
+            url=PRODUCT_URL,
+        )
+        requested: list[str] = []
+
+        def fetch_image(url: str) -> tuple[bytes, str]:
+            requested.append(url)
+            return b"image-bytes", "image/jpeg"
+
+        with patch(
+            "game_stack_planner.asset_store_visuals.fetch_product_details",
+            return_value=(parsed_details(), HttpDocument(b"", PRODUCT_URL)),
+        ):
+            metadata, images = review_candidate_visuals(
+                candidate,
+                detail="quick",
+                fetch_image=fetch_image,
+            )
+
+        self.assertEqual("quick", metadata["detail"])
+        self.assertEqual(3, metadata["image_count"])
+        self.assertEqual(3, len(images))
+        self.assertEqual(3, len(requested))
+        self.assertTrue(all(item.content == b"image-bytes" for item in images))
 
     def test_rejects_page_for_a_different_product(self) -> None:
         with self.assertRaises(AssetStoreDetailsError):

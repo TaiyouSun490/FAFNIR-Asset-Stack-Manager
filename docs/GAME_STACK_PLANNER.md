@@ -1,16 +1,19 @@
-# Fafnir Asset Stack Manager
+# Fafnir 構成生成・検索仕様
+
+> 対象: 検索経路、構成生成、CLIの詳細を確認する上級利用者・開発者。
+> 初めて使う場合は先に[利用ガイド](USER_GUIDE.md)を参照してください。
 
 Fafnir Asset Stack Managerは、作りたいゲームの説明とローカルのUnityプロジェクトから、必要機能と実装候補を整理する独立ツールです。カタログはローカルのSQLiteデータベースへ保存します。
 
 ## 起動
 
 ```powershell
-cd C:\path\to\stackforge
-.\venv\Scripts\Activate.ps1
-game-stack ui
+cd C:\path\to\FAFNIR-Asset-Stack-Manager
+.\.venv\Scripts\Activate.ps1
+fafnir ui
 ```
 
-ブラウザで `http://127.0.0.1:8770/` が開きます。ブラウザを自動で開かない場合は `game-stack ui --no-browser` を使います。
+ブラウザで `http://127.0.0.1:8770/` が開きます。ブラウザを自動で開かない場合は `fafnir ui --no-browser` を使います。
 
 GUIでは次の順に使います。
 
@@ -81,40 +84,40 @@ Asset Storeの商品IDで識別し、レビュー画面や追跡パラメータ�
 
 ```powershell
 # Unityプロジェクトを診断
-game-stack scan C:\Projects\MyGame
+fafnir scan C:\Projects\MyGame
 
 # オンライン検索を含む構成案
-game-stack recommend --prompt "4人協力型ローグライト" --project C:\Projects\MyGame --platform pc
+fafnir recommend --prompt "4人協力型ローグライト" --project C:\Projects\MyGame --platform pc
 
 # 保存済みデータだけで構成案
-game-stack recommend --prompt "Quest向けVRパズル" --platform quest --offline
+fafnir recommend --prompt "Quest向けVRパズル" --platform quest --offline
 
 # カタログ検索
-game-stack catalog --source openupm --query networking
+fafnir catalog --source openupm --query networking
 
 # 購入済みRAGを検索
-game-stack --json rag-search --query "装備 重量" --limit 10
+fafnir --json rag-search --query "装備 重量" --limit 10
 
 # UI/MCP起動時にモデル取得と差分索引を自動実行。進捗確認と明示修復
-game-stack --json rag-status
-game-stack --json rag-index
+fafnir --json rag-status
+fafnir --json rag-index
 
 # Unity Editorが作成した標準同期ファイルを取り込む
-game-stack sync-my-assets
+fafnir sync-my-assets
 
 # Asset Store商品を手動保存
-game-stack pin "https://assetstore.unity.com/packages/..." --title "商品名" --ownership owned
+fafnir pin "https://assetstore.unity.com/packages/..." --title "商品名" --ownership owned
 
 # 公式公開メタデータの進捗確認・差分更新
-game-stack --json asset-details-status
-game-stack --json asset-details-sync --limit 20
+fafnir --json asset-details-status
+fafnir --json asset-details-sync --limit 20
 
 # ローカルunitypackageを展開せず検査
-game-stack --json scan-cache --inspect
+fafnir --json scan-cache --inspect
 
 # 所有アセットをUnityプロジェクトへ照合（コンパイルは明示指定時だけ）
-game-stack --json validate-asset asset_store:12345 --project C:\Projects\MyGame
-game-stack --json validate-asset asset_store:12345 --project C:\Projects\MyGame --compile
+fafnir --json validate-asset asset_store:12345 --project C:\Projects\MyGame
+fafnir --json validate-asset asset_store:12345 --project C:\Projects\MyGame --compile
 ```
 
 各コマンドに `--json` を付けると機械可読JSONで出力します。

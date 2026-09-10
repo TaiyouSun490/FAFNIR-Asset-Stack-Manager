@@ -249,6 +249,9 @@ class UnityBridgeStaticTests(unittest.TestCase):
         source = (
             root / "Editor" / "StackforgeMyAssetsWindow.cs"
         ).read_text(encoding="utf-8")
+        download_source = (
+            root / "Editor" / "FafnirAssetStoreDownloadBridge.cs"
+        ).read_text(encoding="utf-8")
 
         self.assertEqual("com.taiyousun.stackforge", package["name"])
         self.assertEqual("Fafnir My Assets Bridge", package["displayName"])
@@ -266,6 +269,12 @@ class UnityBridgeStaticTests(unittest.TestCase):
             "?view=catalog&scope=owned_assets&sync=my-assets",
             source,
         )
+        self.assertIn("IAssetStoreDownloadManager", download_source)
+        self.assertIn("fafnir.asset-store-download-command.v1", download_source)
+        self.assertIn("fafnir.asset-store-download-status.v1", download_source)
+        self.assertIn("MaxProducts = 20", download_source)
+        self.assertIn("command.expiresAtUtc", download_source)
+        self.assertIn("DateTime.UtcNow", download_source)
         for forbidden in (
             "accessToken",
             "Authorization",
@@ -275,7 +284,7 @@ class UnityBridgeStaticTests(unittest.TestCase):
             "AssetInventory",
         ):
             with self.subTest(forbidden=forbidden):
-                self.assertNotIn(forbidden, source)
+                self.assertNotIn(forbidden, source + download_source)
 
     def test_owned_stat_deep_links_and_syncs_into_owned_catalog(self) -> None:
         static = Path(__file__).parents[1] / "game_stack_planner" / "static"

@@ -1,5 +1,8 @@
 # Fafnir AI導入フロー
 
+> 対象: OpenUPM導入、差分確認、approval、rollbackの安全条件を確認する上級利用者・開発者。
+> Fafnirの基本操作は[利用ガイド](USER_GUIDE.md)を参照してください。
+
 Fafnirは、AIが自由なshell commandやURLを生成して実行する方式ではありません。
 AIが選べる入力は、ローカルカタログに保存された `candidate_id` と対象Unity
 projectだけです。決定的なinstallerが候補を再取得し、source別の閉じたactionへ
@@ -11,8 +14,8 @@ projectだけです。決定的なinstallerが候補を再取得し、source別�
 | --- | --- | --- |
 | OpenUPM | `upm_registry_add` | 許容ライセンスと完全SemVerがある候補だけ、固定registryと完全package-name scopeをmanifestへ追加 |
 | GitHub | `inspect_repository` | 検査待ち。検索結果のbranchやREADMEだけでは導入しない |
-| Asset Store | `manual_asset_store` | 商品ページ、購入、Add to My Assets、Download、Importは公式UIで人が行う |
-| Asset Store cache | `manual_unitypackage` | キャッシュ候補を表示するが、現在は自動importしない |
+| Asset Store | 所有確認済み商品のダウンロード計画 | MCP経由で起動中のUnity Bridgeへ取得を依頼。購入・Add to My Assetsは公式UI、本番Importは別手順 |
+| Asset Store cache | Unity標準のImport確認画面 | 所有商品にリンクしたキャッシュを静的検査し、指定した接続中プロジェクトでファイル選択画面を開く。Import/CancelはUnityで選択 |
 | local | `noop` | 対象projectに同じpackageがある場合だけ導入済み |
 
 OpenUPM適用が変更するのは `Packages/manifest.json` の `dependencies` と
@@ -23,16 +26,16 @@ Unityを次に開いたとき、Package Managerがnetworkから解決します�
 
 ```powershell
 # 1. read-onlyの計画とmanifest差分を作る
-game-stack install-plan openupm:com.example.package --project C:\Projects\MyGame
+fafnir install-plan openupm:com.example.package --project C:\Projects\MyGame
 
 # 2. 出力されたplan idと一回限りのnonceで、確認済み計画だけを適用する
-game-stack install-apply <plan-id> --approval-nonce <approval-nonce>
+fafnir install-apply <plan-id> --approval-nonce <approval-nonce>
 
 # 3. Unityで解決後、jobを確認する
-game-stack install-status <job-id>
+fafnir install-status <job-id>
 
 # 4. 必要なら、出力された一回限りのrollback nonceでmanifest原文を復元する
-game-stack install-rollback <job-id> --rollback-nonce <rollback-nonce>
+fafnir install-rollback <job-id> --rollback-nonce <rollback-nonce>
 ```
 
 GUIでは候補カードの「導入内容を確認」から同じフローを使います。HTTPのinstall
@@ -55,13 +58,25 @@ Editor codeが実行された後に `Assets` や `ProjectSettings` へ生じた�
 
 ## ローカルAsset Storeアセットの検証
 
+ダウンロードには導入先プロジェクトの起動は不要です。Fafnir Bridgeを含むUnity Editorが
+起動済みならそれを使い、Unityの共通キャッシュへ保存します。接続済みなら毎回My Assetsを
+開いたりログインし直す必要はありません。Bridge未接続ならBridge入りプロジェクトを1つ開き、
+認証エラーが返ったときだけHub/Editorのログイン状態を復旧します。Unityの自動起動や
+専用常駐ダウンローダーは現時点では未実装です。
+
+MCPのbridge情報は`readiness`（`offline` / `sign_in_required` / `busy` / `connected`）と
+`next_action`を返します。旧Bridgeの認証状態は`unknown`として扱います。Editorのログイン状態と
+Asset Storeへのリクエスト成功は別なので、接続済みでも取得時の認証エラーはあり得ます。
+`starting`は転送開始待ちです。今回確認されたUnity Connect認証エラーは
+`unity_authentication_required`として返し、単なるタイムアウトと区別します。
+
 `scan-cache --inspect`は`.unitypackage`を展開・実行せず、内容種別、asmdef、UPM依存、
 Render Pipeline/Input参照、ネイティブプラグインを検査します。所有商品と一意に対応した
 キャッシュは、対象Unityプロジェクトの版・pipeline・input・platform・既存GUIDと照合できます。
 
 ```powershell
-game-stack --json validate-asset asset_store:12345 --project C:\Projects\MyGame
-game-stack --json validate-asset asset_store:12345 --project C:\Projects\MyGame --compile
+fafnir --json validate-asset asset_store:12345 --project C:\Projects\MyGame
+fafnir --json validate-asset asset_store:12345 --project C:\Projects\MyGame --compile
 ```
 
 `--compile`は明示指定時だけ、対象と同じUnity Editorで一時プロジェクトを作り、対象projectの

@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
+from mcp.server.mcpserver.utilities.types import Image
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 
 from . import __version__
 from .api import ApiError, GameStackApplication
+from .asset_store_visuals import AssetStoreVisualsError, review_candidate_visuals
 from .scopes import candidate_view
 
 
@@ -17,6 +20,7 @@ _BUDGETS = {"free", "mixed", "owned_first"}
 _SCOPES = {"", "owned_assets", "asset_store_market", "community"}
 _SOURCES = {"", "local", "github", "openupm", "asset_store", "asset_store_cache"}
 _OWNERSHIP = {"", "candidate", "owned", "installed", "unknown"}
+_VISUAL_REVIEW = {"off", "quick", "detail"}
 
 
 def _bounded_text(value: str, *, name: str, maximum: int) -> str:
@@ -61,6 +65,14 @@ def _candidate_evidence(value: dict[str, Any]) -> dict[str, Any]:
             "asset_count": details.get("asset_count"),
             "price": details.get("price"),
             "rating": details.get("rating"),
+            "visual_review": {
+                "available": True,
+                "on_demand": True,
+                "published_image_count": int(
+                    ((details.get("visuals") or {}).get("image_count") or 0)
+                ) if isinstance(details.get("visuals"), dict) else None,
+                "modes": ["quick", "detail"],
+            },
         }
     local_validation = metadata.get("local_validation")
     local_validation = (
@@ -88,6 +100,11 @@ def _candidate_evidence(value: dict[str, Any]) -> dict[str, Any]:
         "updated_at": value.get("updated_at"),
         "installed": bool(value.get("installed")),
         "compatibility": value.get("compatibility"),
+        "visual_review": {
+            "available": value.get("source") == "asset_store",
+            "on_demand": True,
+            "modes": ["quick", "detail"],
+        },
         "asset_store_product_details": product_details,
         "local_validation": local_validation,
     }
@@ -116,7 +133,8 @@ class StackforgeMcpTools:
             "workflow": (
                 "Call retrieve_game_stack_evidence for a game brief, judge concrete "
                 "uses and combinations yourself, then call prepare_candidate_install "
-                "only for chosen IDs. Applying a reviewed plan is a separate tool."
+                "or prepare_owned_asset_download only for chosen IDs. Applying or "
+                "starting a reviewed plan is a separate tool."
             ),
         }
 
@@ -234,6 +252,39 @@ class StackforgeMcpTools:
         except ApiError as exc:
             raise _api_error(exc) from exc
 
+    def prepare_owned_asset_download(
+        self,
+        candidate_ids: list[str],
+    ) -> dict[str, Any]:
+        try:
+            return self.app.prepare_asset_store_download({
+                "candidate_ids": candidate_ids,
+            })
+        except ApiError as exc:
+            raise _api_error(exc) from exc
+
+    def start_reviewed_asset_download(
+        self,
+        plan_id: str,
+        approval_nonce: str,
+    ) -> dict[str, Any]:
+        try:
+            return self.app.start_asset_store_download({
+                "plan_id": plan_id,
+                "approval_nonce": approval_nonce,
+            })
+        except ApiError as exc:
+            raise _api_error(exc) from exc
+
+    def get_asset_store_download_status(
+        self,
+        job_id: str,
+    ) -> dict[str, Any]:
+        try:
+            return self.app.asset_store_download_job(job_id)
+        except ApiError as exc:
+            raise _api_error(exc) from exc
+
     def get_candidate(self, candidate_id: str) -> dict[str, Any]:
         candidate_id = _bounded_text(
             candidate_id, name="candidate_id", maximum=300
@@ -243,6 +294,36 @@ class StackforgeMcpTools:
             raise ValueError("candidate_not_found: Candidate is not in the local catalog.")
         return {"candidate": _candidate_evidence(candidate_view(candidate))}
 
+    def review_asset_store_candidate_visuals(
+        self,
+        candidate_id: str,
+        detail: str = "quick",
+    ) -> list[str | Image]:
+        candidate_id = _bounded_text(
+            candidate_id, name="candidate_id", maximum=300
+        )
+        detail = str(detail or "quick").casefold()
+        if detail not in {"quick", "detail"}:
+            raise ValueError("detail must be 'quick' or 'detail'.")
+        candidate = self.app.repository.get_candidate(candidate_id)
+        if candidate is None:
+            raise ValueError("candidate_not_found: Candidate is not in the local catalog.")
+        try:
+            metadata, images = review_candidate_visuals(
+                candidate,
+                detail=detail,
+            )
+        except AssetStoreVisualsError as exc:
+            raise ValueError(f"visual_review_failed: {exc}") from exc
+        content: list[str | Image] = [
+            json.dumps(metadata, ensure_ascii=False, indent=2)
+        ]
+        content.extend(
+            Image(data=item.content, format=item.mime_type.split("/", 1)[-1])
+            for item in images
+        )
+        return content
+
     def retrieve_game_stack_evidence(
         self,
         game_brief: str,
@@ -250,6 +331,7 @@ class StackforgeMcpTools:
         platform: str = "pc",
         budget: str = "owned_first",
         remote: bool = True,
+        visual_review: str = "quick",
     ) -> dict[str, Any]:
         game_brief = _bounded_text(
             game_brief, name="game_brief", maximum=8000
@@ -259,12 +341,15 @@ class StackforgeMcpTools:
         )
         platform = str(platform or "pc").casefold()
         budget = str(budget or "owned_first").casefold()
+        visual_review = str(visual_review or "quick").casefold()
         if not game_brief:
             raise ValueError("game_brief is required.")
         if platform not in _PLATFORMS:
             raise ValueError(f"Unsupported platform: {platform}")
         if budget not in _BUDGETS:
             raise ValueError(f"Unsupported budget: {budget}")
+        if visual_review not in _VISUAL_REVIEW:
+            raise ValueError(f"Unsupported visual_review: {visual_review}")
         try:
             result = self.app.recommend({
                 "prompt": game_brief,
@@ -311,6 +396,17 @@ class StackforgeMcpTools:
             "strategy_plans": strategy_plans,
             "official_asset_store_searches": result["asset_store_searches"],
             "source_status": result["source_status"],
+            "visual_review": {
+                "mode": visual_review,
+                "tool": "review_asset_store_candidate_visuals",
+                "policy": (
+                    "Do not fetch product images."
+                    if visual_review == "off"
+                    else "Review only the final Asset Store shortlist."
+                    if visual_review == "quick"
+                    else "Review the extended gallery for final Asset Store candidates."
+                ),
+            },
             "llm_guidance": (
                 "Do not blindly repeat local scores or select an item merely because "
                 "it is owned. For each chosen ID, explain its concrete role in this "
@@ -376,13 +472,15 @@ def build_mcp_server(
         title="Fafnir Asset Stack Manager",
         description=(
             "Search owned Unity assets, Asset Store candidates, GitHub and OpenUPM; "
-            "retrieve evidence for a complete game stack; and safely review installs."
+            "retrieve evidence for a complete game stack; safely review installs; "
+            "and queue verified-owned downloads through Unity Editor."
         ),
         instructions=(
             "Use retrieve_game_stack_evidence before recommending a stack. Explain a "
             "concrete use for every selected candidate. Treat local scores as retrieval "
             "hints, verify relevance yourself, and never invent IDs. Prepare installs "
-            "before applying them and show the plan to the user for approval."
+            "or owned-asset downloads before starting them and show the exact plan to "
+            "the user for approval. Never take over a browser to start a download."
         ),
         version=__version__,
     )
@@ -472,10 +570,55 @@ def build_mcp_server(
         ),
     )(tools.validate_cached_asset_for_project)
     server.tool(
+        name="prepare_owned_asset_download",
+        description=(
+            "Prepare a bounded download plan for Asset Store candidates whose ownership "
+            "was verified by the logged-in Unity Editor. It does not download or import. "
+            "Use bridge readiness and next_action. Reuse a connected Editor without asking "
+            "to switch projects or open My Assets; downloads use the shared Unity cache."
+        ),
+        annotations=ToolAnnotations(
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=False,
+        ),
+    )(tools.prepare_owned_asset_download)
+    server.tool(
+        name="start_reviewed_asset_download",
+        description=(
+            "Queue a previously reviewed owned-asset plan for the local Unity Editor "
+            "bridge using its one-time approval. Downloads to Unity's cache; no import."
+        ),
+        annotations=ToolAnnotations(
+            readOnlyHint=False,
+            destructiveHint=False,
+            idempotentHint=False,
+            openWorldHint=True,
+        ),
+    )(tools.start_reviewed_asset_download)
+    server.tool(
+        name="get_asset_store_download_status",
+        description=(
+            "Read Unity Editor download progress and rescan its cache after completion."
+        ),
+        annotations=read_only,
+    )(tools.get_asset_store_download_status)
+    server.tool(
         name="get_unity_asset_candidate",
         description="Read one exact catalog candidate by its stable candidate ID.",
         annotations=read_only,
     )(tools.get_candidate)
+    server.tool(
+        name="review_asset_store_candidate_visuals",
+        description=(
+            "Opt-in visual review of one saved Asset Store candidate. quick returns "
+            "up to 3 public product images; detail returns up to 6. Use images only "
+            "for visible style/fit, then verify technical details separately."
+        ),
+        annotations=network_read,
+        structured_output=False,
+    )(tools.review_asset_store_candidate_visuals)
     server.tool(
         name="retrieve_game_stack_evidence",
         description=(

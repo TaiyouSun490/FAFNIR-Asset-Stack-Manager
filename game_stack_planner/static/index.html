@@ -6,23 +6,20 @@
   <meta name="color-scheme" content="dark">
   <title>Fafnir — Asset Stack Manager</title>
   <link rel="stylesheet" href="/styles.css">
+  <script src="/asset-actions.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
   <div class="shell">
     <header class="topbar">
       <a class="brand" href="/" aria-label="Fafnir home">
-        <span class="brand-emblem" aria-hidden="true"><b>F</b><i></i></span>
-        <span class="brand-lockup">
-          <span class="brand-overline">LOCAL ASSET VAULT</span>
-          <strong><em>F</em>AFNIR</strong>
-          <small>ASSET STACK MANAGER</small>
-        </span>
+        <img class="brand-logo" src="/fafnir-header-logo.png" alt="Fafnir Asset Stack Manager">
       </a>
       <nav class="tabs" aria-label="Main">
         <button class="tab active" data-view="planner">STACK</button>
         <button class="tab" data-view="catalog">ASSETS</button>
       </nav>
+      <label class="asset-image-setting"><input id="show-asset-images" type="checkbox" checked> 商品画像</label>
       <div id="health" class="health"><i></i><span>確認中</span></div>
     </header>
 
