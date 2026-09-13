@@ -31,6 +31,14 @@ For `visual_review=off`, do not fetch product images. For `quick`, first build a
 
 Use visual review to judge art direction, apparent asset breadth, readability, and whether screenshots contradict the proposed use. Do not infer Unity compatibility, code quality, performance, license, included source files, or exact package contents from images. Classify the result as `adopt`, `hold for detail`, or `reject`, and state separately which textual or package evidence still controls the technical decision. An unavailable image is not evidence against the asset.
 
+### Image-backed candidate approval
+
+When the user needs to compare alternatives, call `compare_asset_store_candidates` with the saved candidate IDs. It returns identity-labelled cards and actual representative product images; follow `next_offset` for additional pages (default three cards, maximum six per call). The shortlist is not limited to one winner. Use `include_images=false` when visual review is off; that mode makes no product-detail or image requests. Use the single-candidate visual tool for an extended gallery.
+
+Show the user the relevant real product images alongside each stable ID, proposed role, reasons, ownership and remaining unknowns. An internal model-only image review is not a user-visible approval. If the client cannot display the images, say so and offer the official product link or FAFNIR's catalog comparison UI. Never substitute a generated concept image for the actual asset's evidence.
+
+Record the user's choice separately for each candidate: select, hold, or reject. A selection or an AI suitability judgment is not download, import, or scene-adoption approval. Do not transfer approval to a different candidate, version, or scope. Preserve unanswered candidates as pending/held with a message; do not treat a timeout as consent. The Web UI stores latest decisions in that browser only, not in a shared MCP work queue. A calling Host must maintain its own conversation/project approval state.
+
 ## Acquire selected components
 
 Only acquire files when the user asked to download or install them. Resolve the exact target Unity project before project-specific validation or installation; downloading to the shared Asset Store cache does not require a destination project. Keep downloads and inspection clones outside the project until they pass inspection. Do not install every returned candidate; acquire only the approved coherent stack.

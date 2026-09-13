@@ -221,6 +221,8 @@ class PlannerHandler(BaseHTTPRequestHandler):
                 result = self.app.validate_asset_candidate(payload)
             elif route == "/api/asset-store/preview":
                 result = self.app.asset_product_preview(payload)
+            elif route == "/api/asset-store/compare":
+                result = self.app.compare_asset_candidates(payload)
             elif route == "/api/recommend":
                 result = self.app.recommend(payload)
             elif route == "/api/catalog/manual":

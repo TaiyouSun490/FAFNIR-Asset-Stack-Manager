@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import sys
 import unittest
@@ -165,6 +166,8 @@ class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIn("start_reviewed_asset_download", tools)
                     self.assertIn("get_asset_store_download_status", tools)
                     self.assertIn("review_asset_store_candidate_visuals", tools)
+                    self.assertIn("compare_asset_store_candidates", tools)
+                    self.assertTrue(tools["compare_asset_store_candidates"].annotations.read_only_hint)
                     self.assertTrue(
                         tools["search_unity_assets"].annotations.read_only_hint
                     )
@@ -189,6 +192,17 @@ class StackforgeMcpProtocolTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(
                         called.structured_content["rag_index"]["state"], "empty"
                     )
+                    app.repository.upsert_candidates([Candidate(
+                        id="asset_store:123", source="asset_store", external_id="123", title="Fixture sky",
+                        url="https://assetstore.unity.com/packages/fixture-123",
+                        metadata={"asset_store_details":{"visuals":{"main_image_url":
+                            "https://assetstorev1-prd-cdn.unity3d.com/key-image/fixture.png"}}},
+                    )])
+                    with patch("game_stack_planner.mcp_server.fetch_asset_store_image", return_value=(b"png", "image/png")):
+                        compared = await client.call_tool("compare_asset_store_candidates", {"candidate_ids":["asset_store:123"]})
+                    self.assertFalse(compared.is_error)
+                    self.assertEqual(["text", "text", "image"], [block.type for block in compared.content])
+                    self.assertEqual("asset_store:123", json.loads(compared.content[1].text)["id"])
             finally:
                 app.close()
 

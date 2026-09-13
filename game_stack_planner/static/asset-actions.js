@@ -82,7 +82,7 @@ function assetActionButtons(candidate) {
   const detail = element("button", "install-action-button", owned ? "詳細を見る" : "商品ページ・詳細");
   detail.type = "button";
   detail.addEventListener("click", () => openAssetDetails(candidate));
-  actions.append(detail);
+  actions.append(detail, assetCompareButton(candidate));
   return actions;
 }
 
@@ -131,8 +131,9 @@ async function downloadAsset(view) {
     view.status.textContent = "ダウンロード済み。インポートできます。";
     view.importButton.textContent = "インポート…";
     view.progress.value = 1;
-    return;
+    return true;
   }
+  if (!await confirmAssetDownload(view, prepared)) return false;
   const started = await api(`${ASSET_API}/download/start`, {
     method: "POST", body: JSON.stringify({plan_id: prepared.plan.id, approval_nonce: prepared.approval_nonce}),
   });
@@ -142,6 +143,7 @@ async function downloadAsset(view) {
   view.progress.value = 1;
   view.download.textContent = "ダウンロード済み";
   view.importButton.textContent = "インポート…";
+  return true;
 }
 
 async function runAssetAction(view, mode) {
@@ -162,7 +164,7 @@ async function runAssetAction(view, mode) {
       if (saved) await pollAssetJob(view, saved.kind, saved.id);
       return;
     }
-    await downloadAsset(view);
+    if (!await downloadAsset(view)) return;
     if (mode === "import") {
       $("#project-path").value = project;
       localStorage.setItem("stackforge.projectPath", project);
@@ -224,6 +226,8 @@ async function openAssetDetails(candidate, mode = "detail") {
   const project = element("input"); project.type = "text"; project.value = $("#project-path").value;
   project.placeholder = "C:\\Projects\\MyGame"; label.append(project); content.append(label);
   const status = element("p", "asset-operation-status", "ダウンロードは共通キャッシュへ保存します。インポート時はUnityでファイル一覧を確認できます。");
+  const latestDecision = readAssetReview().decisions[candidate.id];
+  if (latestDecision) status.textContent = `${latestDecision.decision}：${latestDecision.evidence}`;
   status.setAttribute("role", "status");
   const progress = element("progress"); progress.max = 1; progress.value = 0;
   progress.setAttribute("aria-label", "ダウンロード進捗");
