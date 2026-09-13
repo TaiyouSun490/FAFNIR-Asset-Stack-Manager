@@ -31,7 +31,8 @@ const market = {...owned,id:'asset_store:2',title:'Unowned Test Animator',owners
         if (url.searchParams.get('q') === 'stale') { pendingCatalog = route; return; }
         value = {items:[owned,market],count:2,summary:{}};
       }
-      else if (path.endsWith('/download/prepare')) value = {plan:{id:'test',requires_approval:!cached},approval_nonce:'test'};
+      else if (path.endsWith('/download/prepare')) value = {plan:{id:'test',requires_approval:!cached,
+        expires_at_utc:new Date(Date.now()+600000).toISOString(),items:[{candidate_id:owned.id,product_id:1,title:owned.title,version:'1.0',download_size_bytes:12000000}]},approval_nonce:'test'};
       else if (path.endsWith('/download/start')) {
         if (failDownload) return route.fulfill({status:409,json:{error:{code:'download_bridge_offline',message:'offline'}}});
         value = {job:{id:'test-download',state:'queued'}};
@@ -61,9 +62,11 @@ const market = {...owned,id:'asset_store:2',title:'Unowned Test Animator',owners
 
     failDownload = true;
     await ownedCard.getByRole('button',{name:'ダウンロード',exact:true}).click();
+    await page.getByRole('button',{name:'この1件を取得',exact:true}).click();
     await page.getByText('Fafnir入りのUnityを1つ開いてください。ダウンロード先は共通キャッシュです。',{exact:true}).waitFor();
     failDownload = false;
     await page.locator('#asset-detail-dialog').getByRole('button',{name:'ダウンロード',exact:true}).click();
+    await page.getByRole('button',{name:'この1件を取得',exact:true}).click();
     await page.getByText('ダウンロード完了。インポートできます。',{exact:true}).waitFor();
     const startCount = calls.filter(call => call.path.endsWith('/download/start')).length;
     await page.locator('#asset-detail-dialog').getByRole('button',{name:'インポート…',exact:true}).click();
@@ -80,6 +83,7 @@ const market = {...owned,id:'asset_store:2',title:'Unowned Test Animator',owners
 
     cached = false; holdDownload = true;
     await ownedCard.getByRole('button',{name:'ダウンロード',exact:true}).click();
+    await page.getByRole('button',{name:'この1件を取得',exact:true}).click();
     await page.getByText('Downloading test',{exact:true}).waitFor();
     await page.getByRole('button',{name:'詳細を閉じる'}).click();
     await ownedCard.getByRole('button',{name:'詳細を見る',exact:true}).click();

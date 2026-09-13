@@ -28,6 +28,7 @@ from .asset_store_details import (
 )
 from .install_service import InstallCoordinator, InstallCoordinatorError
 from .bridge_setup import BridgeSetupCoordinator
+from .candidate_comparison import comparison_card
 from .local_asset_validation import (
     LocalAssetValidationError,
     resolve_cached_package_path,
@@ -982,6 +983,29 @@ class GameStackApplication:
             except AssetStoreCacheError as exc:
                 result["cache_scan_error"] = str(exc)
         return result
+
+    def compare_asset_candidates(self, payload: dict[str, Any]) -> dict[str, Any]:
+        _only_fields(payload, {"candidate_ids", "offset", "limit"})
+        ids = payload.get("candidate_ids")
+        if (not isinstance(ids, list) or not 1 <= len(ids) <= 5000
+                or any(not isinstance(i, str) or not i or len(i) > 300 for i in ids)
+                or len(set(ids)) != len(ids)):
+            raise ApiError(400, "invalid_request", "Provide 1–5000 distinct saved candidate IDs.")
+        offset, limit = payload.get("offset", 0), payload.get("limit", 6)
+        if type(offset) is not int or type(limit) is not int or offset < 0 or not 1 <= limit <= 6:
+            raise ApiError(400, "invalid_request", "offset must be non-negative; limit must be 1–6.")
+        cards = []
+        for candidate_id in ids[offset:offset + limit]:
+            candidate = self.repository.get_candidate(candidate_id)
+            if candidate is None or candidate.source != "asset_store":
+                raise ApiError(404, "candidate_not_found", "Comparison requires saved Asset Store candidates.")
+            cards.append(comparison_card(candidate))
+        return {
+            "items": cards, "total": len(ids), "offset": offset,
+            "next_offset": offset + limit if offset + limit < len(ids) else None,
+            "selection_is_approval": False,
+            "guidance": "Compare images and explain role, suitability and unknowns. Selection is not download, import or scene adoption approval.",
+        }
 
     def asset_product_preview(self, payload: dict[str, Any]) -> dict[str, Any]:
         _only_fields(payload, {"candidate_id"})

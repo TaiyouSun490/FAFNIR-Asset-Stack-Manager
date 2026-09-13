@@ -22,6 +22,7 @@ class FafnirSkillTests(unittest.TestCase):
             "start_reviewed_asset_download",
             "get_asset_store_download_status",
             "review_asset_store_candidate_visuals",
+            "compare_asset_store_candidates",
         ):
             self.assertIn(f"`{tool_name}`", skill)
 

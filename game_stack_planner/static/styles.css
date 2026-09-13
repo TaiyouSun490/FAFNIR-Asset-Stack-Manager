@@ -392,3 +392,23 @@ dialog form { padding: 25px; }
   .logo-grid { grid-template-columns: 1fr; }
   .logo-canvas { min-height: 150px; padding: 20px; }
 }
+:root .asset-comparison-dialog { width: min(1240px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; box-sizing: border-box; }
+.asset-comparison-dialog, .asset-approval-dialog { padding: 24px; font-size: 14px; line-height: 1.6; }
+.asset-comparison-dialog .muted, .asset-approval-dialog .muted { font-size: 12px; line-height: 1.6; }
+.asset-comparison-dialog h2, .asset-approval-dialog h2 { margin: 0 0 12px; font-size: 22px; }
+.asset-comparison-dialog h3, .asset-approval-dialog h3 { margin: 0 0 10px; font-size: 18px; }
+.asset-comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 18px; margin-top: 16px; }
+.asset-comparison-card { min-width: 0; padding: 14px; border: 1px solid var(--line, #555); border-radius: 12px; overflow-wrap: anywhere; }
+.review-product-image { min-height: 150px; display: grid; place-items: center; }
+.review-product-image img { max-width: 100%; width: auto; height: 170px; object-fit: contain; }
+.asset-approval-dialog { width: min(650px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; box-sizing: border-box; overflow-wrap: anywhere; }
+.asset-approval-dialog .asset-buttons, .asset-comparison-dialog .asset-buttons { flex-wrap: wrap; }
+.asset-comparison-card button { max-width: 100%; white-space: normal; }
+.asset-comparison-dialog button, .asset-approval-dialog button { min-height: 40px; padding: 8px 12px; border: 1px solid var(--line-hot); background: var(--surface-hot); color: var(--accent-soft); cursor: pointer; font-size: 13px; }
+.asset-comparison-dialog button:disabled, .asset-approval-dialog button:disabled { color: var(--dim); border-color: var(--line); background: var(--surface); cursor: default; }
+.asset-comparison-dialog button:hover:not(:disabled), .asset-approval-dialog button:hover:not(:disabled) { border-color: var(--accent); }
+.asset-comparison-card > button { width: 100%; margin-top: 12px; }
+.review-decision { padding: 8px 10px; border-left: 2px solid var(--accent); background: var(--surface-high); }
+@media (max-width: 600px) {
+  .asset-comparison-dialog, .asset-approval-dialog { padding: 16px; }
+}

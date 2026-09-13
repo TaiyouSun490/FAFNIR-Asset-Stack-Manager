@@ -147,8 +147,14 @@ MCPで主に使用するtool:
 | `search_owned_asset_rag` | 所有アセットの意味検索 |
 | `retrieve_game_stack_evidence` | ゲーム要件に対する3レーンの比較材料 |
 | `get_unity_asset_candidate` | 1候補の根拠と公開互換性情報 |
+| `compare_asset_store_candidates` | 商品ID付きの実画像で複数候補を比較（ページ分割） |
 | `validate_cached_asset_for_project` | キャッシュ済みpackageとProjectの照合 |
 | `prepare_candidate_install` | 書き込み前の導入計画と差分 |
+
+カタログの「比較に追加」→「画像で候補を比較」で、複数候補の画像・所有状態・版・容量を
+並べ、候補ごとに選択／保留／見送りを記録できます。取得時は正確な商品の画像と取得計画を
+別画面で確認します。選択だけでは取得せず、無回答は承認になりません。
+[画像付き比較・承認の仕様と検証手順](docs/VISUAL_ASSET_APPROVAL.md)を参照してください。
 
 ## データはどこに保存され、何がAIへ渡るか
 
@@ -170,6 +176,8 @@ DB全体、ベクトル、認証情報はMCP応答へ含めません。
 ファイルhash、一回限りの承認値が含まれます。公開issueやPRへ転記しないでください。
 ただし、MCPが返した商品名、tag、説明の抜粋、互換性、scoreは、接続先AI serviceのmodel入力に
 含まれる場合があります。完全なoffline利用にはCLIの`--offline`を使い、外部AIへ接続しないでください。
+画像レビュー／比較で返す公開商品画像もAI clientへ渡ります。画像取得を避ける場合は
+`visual_review=off`／`include_images=false`を指定してください。
 
 通常の`git push`でローカルDBやMy Assets出力が送信されないよう、対象fileは`.gitignore`済みです。
 

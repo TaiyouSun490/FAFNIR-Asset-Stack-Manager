@@ -11,7 +11,8 @@ from mcp.types import ToolAnnotations
 
 from . import __version__
 from .api import ApiError, GameStackApplication
-from .asset_store_visuals import AssetStoreVisualsError, review_candidate_visuals
+from .asset_store_visuals import AssetStoreVisualsError, review_candidate_visuals, fetch_asset_store_image
+from .candidate_comparison import comparison_card
 from .scopes import candidate_view
 
 
@@ -345,6 +346,46 @@ class StackforgeMcpTools:
         )
         return content
 
+    def compare_asset_store_candidates(
+        self, candidate_ids: list[str], offset: int = 0, limit: int = 3,
+        include_images: bool = True,
+    ) -> list[str | Image]:
+        """One actual representative image per card; follow pages for any shortlist size."""
+        if type(include_images) is not bool:
+            raise ValueError("include_images must be a boolean.")
+        try:
+            result = self.app.compare_asset_candidates({"candidate_ids": candidate_ids, "offset": offset, "limit": limit})
+        except ApiError as exc:
+            raise _api_error(exc) from exc
+        content: list[str | Image] = []
+        total_bytes = 0
+        for index, card in enumerate(result["items"]):
+            image = None
+            if include_images:
+                try:
+                    if total_bytes >= 20 * 1024 * 1024:
+                        raise AssetStoreVisualsError("Page image budget reached; request a smaller page.")
+                    if not card["images"]:
+                        self.app.asset_product_preview({"candidate_id": card["id"]})
+                        card = comparison_card(self.app.repository.get_candidate(card["id"]))
+                        result["items"][index] = card
+                    if not card["images"]:
+                        raise AssetStoreVisualsError("No public product image available.")
+                    data, mime = fetch_asset_store_image(card["images"][0]["source_url"])
+                    if total_bytes + len(data) > 20 * 1024 * 1024:
+                        raise AssetStoreVisualsError("Page image budget reached; request a smaller page.")
+                    total_bytes += len(data)
+                    image = Image(data=data, format=mime.split("/", 1)[-1])
+                    card["image_status"] = "attached"
+                except (AssetStoreVisualsError, ApiError) as exc:
+                    card["image_status"] = "unavailable"
+                    card["image_error"] = str(exc)
+            # Keep identity immediately adjacent to each image, not inferred from gallery order.
+            content.append(json.dumps(card, ensure_ascii=False))
+            if image is not None:
+                content.append(image)
+        return [json.dumps({key: value for key, value in result.items() if key != "items"}, ensure_ascii=False), *content]
+
     def retrieve_game_stack_evidence(
         self,
         game_brief: str,
@@ -658,6 +699,17 @@ def build_mcp_server(
         annotations=network_read,
         structured_output=False,
     )(tools.review_asset_store_candidate_visuals)
+    server.tool(
+        name="compare_asset_store_candidates",
+        description=(
+            "Compare saved Asset Store candidates with stable IDs, size, ownership, caveats "
+            "and actual representative images. Paginate with offset/limit (max 6 per page); "
+            "include_images=false makes no image/detail requests. Candidate selection is NOT "
+            "download/import/adoption approval. Show images to the user before asking for approval."
+        ),
+        annotations=network_read,
+        structured_output=False,
+    )(tools.compare_asset_store_candidates)
     server.tool(
         name="retrieve_game_stack_evidence",
         description=(

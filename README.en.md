@@ -145,8 +145,14 @@ Primary MCP tools:
 | `search_owned_asset_rag` | Semantic retrieval over owned assets |
 | `retrieve_game_stack_evidence` | Evidence across the three source lanes |
 | `get_unity_asset_candidate` | Evidence for one exact candidate |
+| `compare_asset_store_candidates` | Paginated alternatives with identity-labelled, actual product images |
 | `validate_cached_asset_for_project` | Compare a cached package with a Unity project |
 | `prepare_candidate_install` | Produce a reviewable install plan and diff |
+
+In the catalog, add candidates to the comparison, then open the image comparison board.
+Select, hold, or reject any number of alternatives individually. Downloading requires a
+separate image-backed confirmation of the exact product, version and size. Selection
+and silence do not authorize acquisition. See [visual approval and QA](docs/VISUAL_ASSET_APPROVAL.md).
 
 ## Local data and AI boundaries
 
@@ -161,6 +167,8 @@ The full database, vectors and credentials are not included in MCP
 responses. Retrieved product names, tags, description excerpts, compatibility evidence, and scores may
 become part of the connected AI service's model input. Use CLI `--offline` without an external AI
 connection when that is not acceptable.
+Public product images returned by visual-review/comparison tools also reach the AI
+client. Use `visual_review=off` / `include_images=false` to avoid those image requests.
 
 Bridge setup/diagnosis responses include the reviewed local project path, file
 hashes, manifest diff and one-time approval values. Do not publish them in issues
